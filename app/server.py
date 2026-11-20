@@ -48,7 +48,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 CACHE = Path(os.environ.get("SEARCHBRIDGE_CACHE", Path.home() / ".cache" / "searchbridge"))   # outside iCloud/Dropbox folders
 LIBRARY = Path(os.environ.get("SEARCHBRIDGE_LIBRARY", ROOT / "data/library"))
 ALLOWED = {".pdf", ".txt", ".md", ".html", ".htm", ".json", ".jsonl"}
-CODE_VERSION = "5"   # bump to invalidate cached indexes after engine changes
+CODE_VERSION = "6"   # bump to invalidate cached indexes after engine changes
 
 
 class Collection:

@@ -300,3 +300,21 @@ def test_crawl_link_count_matches_exported_edges(tmp_path):
     saved = json.loads((tmp_path / "crawl_stats.json").read_text())
     assert len(docs) == 2 and docs[0].links == ["https://example.org/b"] and docs[1].links == []
     assert stats["links"] == saved["links"] == sum(len(doc.links) for doc in docs) == 1
+
+
+def test_topic_labels_handle_excerpt_boundaries_and_abstract_only_words():
+    docs = []
+    for i in range(8):
+        if i < 4:
+            # The old 2,500-character excerpt ended in "phot" inside "photometry".
+            text = "orbit " * 416 + "photometry measurements"
+            docs.append(Document(str(i), "Stars", text))
+        else:
+            docs.append(Document(str(i), "Trees", "forest roots soil",
+                                 {"abstract": "canopy canopy canopy"}))
+
+    engine = SearchEngine.from_documents(docs, EngineConfig(encoder="lsa", n_topics=2, build_kg=False))
+    labels = " ".join(engine.topic_labels.values()).lower().split()
+    assert "canopy" in labels and "phot" not in labels
+    assert len(engine.doc_topic) == len(docs)
+    assert engine.search("photometry", mode="bm25").hits

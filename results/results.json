@@ -1,0 +1,632 @@
+{
+  "collection": {
+    "docs": 1400,
+    "queries": 225
+  },
+  "hybrid_alpha_curve": {
+    "0.0": 0.3585,
+    "0.1": 0.3598,
+    "0.2": 0.3619,
+    "0.3": 0.3602,
+    "0.4": 0.3593,
+    "0.5": 0.3551,
+    "0.6": 0.3477,
+    "0.7": 0.3409,
+    "0.8": 0.3315,
+    "0.9": 0.3251,
+    "1.0": 0.3167
+  },
+  "oracle_per_query_alpha_MAP": 0.3941821396089911,
+  "qahr": {
+    "feature_alpha_correlation": {
+      "avg_idf": 0.019,
+      "max_idf": -0.061,
+      "avg_scq": 0.13,
+      "scs": 0.074,
+      "qlen": -0.198,
+      "oov": 0.017,
+      "nqc_lex": 0.17,
+      "nqc_dense": 0.198,
+      "wig_lex": 0.178,
+      "margin_lex": 0.033,
+      "margin_dense": 0.022,
+      "rbo": 0.051
+    },
+    "pred_alpha_mean": 0.36322487453036395,
+    "pred_alpha_std": 0.07596358367541294,
+    "alpha_pred_vs_oracle_r": 0.08363604614364328
+  },
+  "bridge_grid_MAP": {
+    "k=3,alpha=0.2": 0.3856,
+    "k=3,alpha=0.3": 0.3799,
+    "k=3,alpha=0.4": 0.3795,
+    "k=3,alpha=0.5": 0.3794,
+    "k=5,alpha=0.2": 0.3828,
+    "k=5,alpha=0.3": 0.3785,
+    "k=5,alpha=0.4": 0.3759,
+    "k=5,alpha=0.5": 0.3749,
+    "k=10,alpha=0.2": 0.3749,
+    "k=10,alpha=0.3": 0.3763,
+    "k=10,alpha=0.4": 0.3715,
+    "k=10,alpha=0.5": 0.3692
+  },
+  "bridge_cv_chosen": [
+    "k=3,alpha=0.2",
+    "k=3,alpha=0.2",
+    "k=3,alpha=0.2",
+    "k=3,alpha=0.2",
+    "k=3,alpha=0.2"
+  ],
+  "bridge_ablation": {
+    "Bridge-PRF (full)": {
+      "MAP": 0.3785,
+      "P@10": 0.2924,
+      "R@100": 0.8196,
+      "nDCG@10": 0.4582,
+      "MRR": 0.5619,
+      "BPref": 0.3006
+    },
+    "  - without lexical RM3 branch": {
+      "MAP": 0.3753,
+      "P@10": 0.2853,
+      "R@100": 0.8183,
+      "nDCG@10": 0.4528,
+      "MRR": 0.5708,
+      "BPref": 0.3043
+    },
+    "  - without dense vector-PRF branch": {
+      "MAP": 0.3659,
+      "P@10": 0.2764,
+      "R@100": 0.8046,
+      "nDCG@10": 0.4433,
+      "MRR": 0.5712,
+      "BPref": 0.2941
+    },
+    "  - self-feedback instead of shared hybrid feedback": {
+      "MAP": 0.3784,
+      "P@10": 0.292,
+      "R@100": 0.8238,
+      "nDCG@10": 0.4569,
+      "MRR": 0.562,
+      "BPref": 0.2957
+    },
+    "  - no feedback at all (= hybrid alpha 0.3)": {
+      "MAP": 0.3602,
+      "P@10": 0.2724,
+      "R@100": 0.7966,
+      "nDCG@10": 0.4388,
+      "MRR": 0.5759,
+      "BPref": 0.2883
+    }
+  },
+  "main_table": {
+    "TF-IDF cosine (lnc.ltc)": {
+      "MAP": 0.308,
+      "P@5": 0.3191,
+      "P@10": 0.2351,
+      "R@100": 0.7603,
+      "nDCG@10": 0.386,
+      "MRR": 0.5382,
+      "R-Prec": 0.2961,
+      "BPref": 0.2556,
+      "p_vs_bm25_ttest": 0.21638400857102139,
+      "p_vs_bm25_rand": 0.2216,
+      "p_vs_hybrid_ttest": 6.712438171720323e-13,
+      "p_vs_hybrid_rand": 0.0,
+      "p_vs_vprf_ttest": 7.874697577893985e-13,
+      "p_vs_vprf_rand": 0.0
+    },
+    "BM25 (k1=1.2, b=0.75)": {
+      "MAP": 0.3165,
+      "P@5": 0.328,
+      "P@10": 0.2378,
+      "R@100": 0.7505,
+      "nDCG@10": 0.3909,
+      "MRR": 0.5417,
+      "R-Prec": 0.3145,
+      "BPref": 0.265,
+      "p_vs_bm25_ttest": 1.0,
+      "p_vs_bm25_rand": 1.0,
+      "p_vs_hybrid_ttest": 1.9437138907333707e-08,
+      "p_vs_hybrid_rand": 0.0,
+      "p_vs_vprf_ttest": 1.9498655134425707e-09,
+      "p_vs_vprf_rand": 0.0
+    },
+    "QL-LM Dirichlet (mu=300)": {
+      "MAP": 0.3024,
+      "P@5": 0.3164,
+      "P@10": 0.2302,
+      "R@100": 0.738,
+      "nDCG@10": 0.3814,
+      "MRR": 0.5465,
+      "R-Prec": 0.3043,
+      "BPref": 0.2719,
+      "p_vs_bm25_ttest": 0.0005183850259723336,
+      "p_vs_bm25_rand": 0.0002,
+      "p_vs_hybrid_ttest": 1.4595417462582417e-12,
+      "p_vs_hybrid_rand": 0.0,
+      "p_vs_vprf_ttest": 1.4864154105607797e-12,
+      "p_vs_vprf_rand": 0.0
+    },
+    "QL-LM Jelinek-Mercer (lambda=0.7)": {
+      "MAP": 0.2931,
+      "P@5": 0.3173,
+      "P@10": 0.2244,
+      "R@100": 0.7358,
+      "nDCG@10": 0.3729,
+      "MRR": 0.5364,
+      "R-Prec": 0.2955,
+      "BPref": 0.2623,
+      "p_vs_bm25_ttest": 1.0316237123337793e-06,
+      "p_vs_bm25_rand": 0.0,
+      "p_vs_hybrid_ttest": 7.910381137356307e-18,
+      "p_vs_hybrid_rand": 0.0,
+      "p_vs_vprf_ttest": 4.943058904602939e-16,
+      "p_vs_vprf_rand": 0.0
+    },
+    "SDM / Markov random field (0.85, 0.10, 0.05)": {
+      "MAP": 0.3055,
+      "P@5": 0.3227,
+      "P@10": 0.2342,
+      "R@100": 0.7426,
+      "nDCG@10": 0.3884,
+      "MRR": 0.5604,
+      "R-Prec": 0.2991,
+      "BPref": 0.2541,
+      "p_vs_bm25_ttest": 0.01685687617715671,
+      "p_vs_bm25_rand": 0.0149,
+      "p_vs_hybrid_ttest": 5.384604720218275e-12,
+      "p_vs_hybrid_rand": 0.0,
+      "p_vs_vprf_ttest": 2.571450373381149e-12,
+      "p_vs_vprf_rand": 0.0
+    },
+    "Dense (LSA)": {
+      "MAP": 0.3585,
+      "P@5": 0.3627,
+      "P@10": 0.2684,
+      "R@100": 0.8042,
+      "nDCG@10": 0.4354,
+      "MRR": 0.5819,
+      "R-Prec": 0.3351,
+      "BPref": 0.3008,
+      "p_vs_bm25_ttest": 1.1902252019626967e-06,
+      "p_vs_bm25_rand": 0.0,
+      "p_vs_hybrid_ttest": 0.8128645745111153,
+      "p_vs_hybrid_rand": 0.8242,
+      "p_vs_vprf_ttest": 0.00010877541140291263,
+      "p_vs_vprf_rand": 0.0001
+    },
+    "BM25 + RM3 (self-PRF)": {
+      "MAP": 0.3535,
+      "P@5": 0.3627,
+      "P@10": 0.2676,
+      "R@100": 0.7783,
+      "nDCG@10": 0.4286,
+      "MRR": 0.5629,
+      "R-Prec": 0.3452,
+      "BPref": 0.2862,
+      "p_vs_bm25_ttest": 1.5080253109808406e-11,
+      "p_vs_bm25_rand": 0.0,
+      "p_vs_hybrid_ttest": 0.46735202589040226,
+      "p_vs_hybrid_rand": 0.4705,
+      "p_vs_vprf_ttest": 0.012408085587925005,
+      "p_vs_vprf_rand": 0.013
+    },
+    "Dense (LSA) + vector-PRF (self)": {
+      "MAP": 0.3773,
+      "P@5": 0.3653,
+      "P@10": 0.2827,
+      "R@100": 0.8293,
+      "nDCG@10": 0.4524,
+      "MRR": 0.5915,
+      "R-Prec": 0.3489,
+      "BPref": 0.315,
+      "p_vs_bm25_ttest": 1.9498655134425707e-09,
+      "p_vs_bm25_rand": 0.0,
+      "p_vs_hybrid_ttest": 0.0009129405185002363,
+      "p_vs_hybrid_rand": 0.0006,
+      "p_vs_vprf_ttest": 1.0,
+      "p_vs_vprf_rand": 1.0
+    },
+    "Hybrid RRF (k=60)": {
+      "MAP": 0.3501,
+      "P@5": 0.3582,
+      "P@10": 0.2631,
+      "R@100": 0.7824,
+      "nDCG@10": 0.4264,
+      "MRR": 0.5706,
+      "R-Prec": 0.3438,
+      "BPref": 0.2812,
+      "p_vs_bm25_ttest": 5.161354639759983e-10,
+      "p_vs_bm25_rand": 0.0,
+      "p_vs_hybrid_ttest": 0.025057597625733403,
+      "p_vs_hybrid_rand": 0.0243,
+      "p_vs_vprf_ttest": 6.281596895211157e-05,
+      "p_vs_vprf_rand": 0.0
+    },
+    "Hybrid linear (alpha CV-tuned)": {
+      "MAP": 0.3592,
+      "P@5": 0.3573,
+      "P@10": 0.272,
+      "R@100": 0.7977,
+      "nDCG@10": 0.4371,
+      "MRR": 0.5714,
+      "R-Prec": 0.3428,
+      "BPref": 0.2935,
+      "p_vs_bm25_ttest": 1.9437138907333707e-08,
+      "p_vs_bm25_rand": 0.0,
+      "p_vs_hybrid_ttest": 1.0,
+      "p_vs_hybrid_rand": 1.0,
+      "p_vs_vprf_ttest": 0.0009129405185002363,
+      "p_vs_vprf_rand": 0.0006
+    },
+    "QAHR: QPP-adaptive hybrid (ours, 5-fold CV)": {
+      "MAP": 0.357,
+      "P@5": 0.3573,
+      "P@10": 0.2716,
+      "R@100": 0.7946,
+      "nDCG@10": 0.4347,
+      "MRR": 0.5621,
+      "R-Prec": 0.3445,
+      "BPref": 0.2866,
+      "p_vs_bm25_ttest": 4.902965737456857e-09,
+      "p_vs_bm25_rand": 0.0,
+      "p_vs_hybrid_ttest": 0.304762113441251,
+      "p_vs_hybrid_rand": 0.303,
+      "p_vs_vprf_ttest": 0.000952887880822772,
+      "p_vs_vprf_rand": 0.0004
+    },
+    "Bridge-PRF (ours, default k=5, alpha=0.3)": {
+      "MAP": 0.3785,
+      "P@5": 0.3733,
+      "P@10": 0.2924,
+      "R@100": 0.8196,
+      "nDCG@10": 0.4582,
+      "MRR": 0.5619,
+      "R-Prec": 0.3673,
+      "BPref": 0.3006,
+      "p_vs_bm25_ttest": 7.100227014361804e-16,
+      "p_vs_bm25_rand": 0.0,
+      "p_vs_hybrid_ttest": 6.357634506981814e-05,
+      "p_vs_hybrid_rand": 0.0,
+      "p_vs_vprf_ttest": 0.8435024814300065,
+      "p_vs_vprf_rand": 0.8496
+    },
+    "Bridge-PRF (ours, 5-fold CV-tuned)": {
+      "MAP": 0.3856,
+      "P@5": 0.3884,
+      "P@10": 0.2942,
+      "R@100": 0.8267,
+      "nDCG@10": 0.464,
+      "MRR": 0.5819,
+      "R-Prec": 0.3702,
+      "BPref": 0.2913,
+      "p_vs_bm25_ttest": 2.054921225328747e-15,
+      "p_vs_bm25_rand": 0.0,
+      "p_vs_hybrid_ttest": 1.546199000737407e-08,
+      "p_vs_hybrid_rand": 0.0,
+      "p_vs_vprf_ttest": 0.14017469802401925,
+      "p_vs_vprf_rand": 0.1425
+    }
+  },
+  "win_tie_loss_vs_bm25": {
+    "wins": 171,
+    "ties": 12,
+    "losses": 42
+  },
+  "boolean_AND": {
+    "precision": 0.0373,
+    "recall": 0.0142,
+    "F1": 0.0182,
+    "avg_result_size": 0.1
+  },
+  "boolean_OR": {
+    "precision": 0.0085,
+    "recall": 0.9592,
+    "F1": 0.0168,
+    "avg_result_size": 897.8
+  },
+  "preprocessing_ablation": {
+    "stemming=on, stopwords=removed": {
+      "MAP": 0.3165,
+      "P@10": 0.2378,
+      "vocab": 4676
+    },
+    "stemming=on, stopwords=kept": {
+      "MAP": 0.3029,
+      "P@10": 0.2333,
+      "vocab": 4786
+    },
+    "stemming=off, stopwords=removed": {
+      "MAP": 0.2949,
+      "P@10": 0.2356,
+      "vocab": 7319
+    },
+    "stemming=off, stopwords=kept": {
+      "MAP": 0.2789,
+      "P@10": 0.2258,
+      "vocab": 7436
+    }
+  },
+  "bm25_sweep": {
+    "k1": [
+      0.6,
+      0.9,
+      1.2,
+      1.5,
+      2.0,
+      2.5
+    ],
+    "b": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+    ],
+    "MAP": [
+      [
+        0.2801,
+        0.2887,
+        0.2984,
+        0.3028,
+        0.3041
+      ],
+      [
+        0.2869,
+        0.2979,
+        0.3072,
+        0.3108,
+        0.3119
+      ],
+      [
+        0.2909,
+        0.3044,
+        0.3109,
+        0.3165,
+        0.3128
+      ],
+      [
+        0.2933,
+        0.3079,
+        0.3145,
+        0.32,
+        0.3158
+      ],
+      [
+        0.299,
+        0.3109,
+        0.3165,
+        0.321,
+        0.3192
+      ],
+      [
+        0.3012,
+        0.3118,
+        0.3189,
+        0.3216,
+        0.3191
+      ]
+    ]
+  },
+  "compression": [
+    {
+      "structure": "Postings, uncompressed (4-byte ints)",
+      "bytes": 335808,
+      "ratio": 1.0
+    },
+    {
+      "structure": "Postings, gaps + Variable-Byte",
+      "bytes": 91755,
+      "ratio": 0.273
+    },
+    {
+      "structure": "Postings, gaps + Elias-gamma",
+      "bytes": 81097,
+      "ratio": 0.241
+    },
+    {
+      "structure": "Postings, gaps + Elias-delta",
+      "bytes": 80928,
+      "ratio": 0.241
+    },
+    {
+      "structure": "Dictionary, fixed-width 20B/term",
+      "bytes": 93520,
+      "ratio": 1.0
+    },
+    {
+      "structure": "Dictionary, blocked front-coding",
+      "bytes": 36738,
+      "ratio": 0.393
+    }
+  ],
+  "zipf": {
+    "exponent": 1.626,
+    "r2": 0.935
+  },
+  "heaps": {
+    "k": 23.96,
+    "b": 0.447,
+    "r2": 0.998
+  },
+  "pagerank_prior_MAP": {
+    "0.0": 0.3785,
+    "0.05": 0.3777,
+    "0.1": 0.3762,
+    "0.2": 0.3726
+  },
+  "mmr_tradeoff": {
+    "1.0": {
+      "nDCG@10": 0.4582,
+      "ILD@10": 0.5842
+    },
+    "0.85": {
+      "nDCG@10": 0.4532,
+      "ILD@10": 0.5885
+    },
+    "0.7": {
+      "nDCG@10": 0.4453,
+      "ILD@10": 0.5971
+    },
+    "0.5": {
+      "nDCG@10": 0.4106,
+      "ILD@10": 0.6372
+    }
+  },
+  "venue_exposure_top10": {
+    "NACA report (US)": {
+      "corpus_share": 0.128,
+      "exposure_share": 0.122
+    },
+    "Other / unknown": {
+      "corpus_share": 0.226,
+      "exposure_share": 0.232
+    },
+    "Journal / proceedings": {
+      "corpus_share": 0.443,
+      "exposure_share": 0.415
+    },
+    "ARC/RAE report (UK)": {
+      "corpus_share": 0.104,
+      "exposure_share": 0.113
+    },
+    "NASA report (US)": {
+      "corpus_share": 0.099,
+      "exposure_share": 0.117
+    }
+  },
+  "venue_classification_5fold": {
+    "Multinomial Naive Bayes": {
+      "accuracy": 0.6695,
+      "macro_F1": 0.5717
+    },
+    "Rocchio (nearest centroid)": {
+      "accuracy": 0.6362,
+      "macro_F1": 0.551
+    },
+    "kNN (k=5, cosine)": {
+      "accuracy": 0.6722,
+      "macro_F1": 0.5762
+    },
+    "Majority-class baseline": {
+      "accuracy": 0.5725,
+      "macro_F1": null
+    }
+  },
+  "clustering_vs_venue": {
+    "k-means (spherical, k=4)": {
+      "purity": 0.5725,
+      "NMI": 0.0448
+    },
+    "HAC average-link (k=4)": {
+      "purity": 0.5725,
+      "NMI": 0.0196
+    },
+    "HAC complete-link (k=4)": {
+      "purity": 0.5725,
+      "NMI": 0.0111
+    }
+  },
+  "clustering_topical": {
+    "topics": 8,
+    "docs": 179,
+    "scores": {
+      "k-means on LSA vectors": {
+        "purity": 0.7877,
+        "NMI": 0.7153
+      },
+      "HAC average-link on LSA vectors": {
+        "purity": 0.4078,
+        "NMI": 0.4185
+      },
+      "HAC complete-link on LSA vectors": {
+        "purity": 0.6536,
+        "NMI": 0.6191
+      },
+      "k-means on tf-idf vectors": {
+        "purity": 0.6872,
+        "NMI": 0.5607
+      },
+      "HAC average-link on tf-idf vectors": {
+        "purity": 0.4078,
+        "NMI": 0.425
+      },
+      "HAC complete-link on tf-idf vectors": {
+        "purity": 0.2179,
+        "NMI": 0.0
+      },
+      "random assignment (baseline)": {
+        "purity": 0.2849,
+        "NMI": 0.0675
+      }
+    }
+  },
+  "pr_curves": {
+    "TF-IDF cosine (lnc.ltc)": [
+      0.5879,
+      0.5626,
+      0.5125,
+      0.4193,
+      0.3697,
+      0.33,
+      0.2357,
+      0.2033,
+      0.169,
+      0.1302,
+      0.122
+    ],
+    "BM25 (k1=1.2, b=0.75)": [
+      0.5925,
+      0.5643,
+      0.5195,
+      0.4364,
+      0.3844,
+      0.3458,
+      0.2474,
+      0.2078,
+      0.1719,
+      0.1295,
+      0.1214
+    ],
+    "Dense (LSA)": [
+      0.6329,
+      0.6032,
+      0.5579,
+      0.4634,
+      0.4216,
+      0.393,
+      0.296,
+      0.2623,
+      0.2285,
+      0.179,
+      0.1637
+    ],
+    "Hybrid linear (alpha CV-tuned)": [
+      0.6282,
+      0.6078,
+      0.5631,
+      0.4632,
+      0.4211,
+      0.3863,
+      0.3016,
+      0.2683,
+      0.2316,
+      0.1798,
+      0.166
+    ],
+    "Bridge-PRF (ours, 5-fold CV-tuned)": [
+      0.6429,
+      0.6231,
+      0.5835,
+      0.4986,
+      0.4621,
+      0.4296,
+      0.3319,
+      0.2984,
+      0.259,
+      0.2011,
+      0.183
+    ]
+  }
+}

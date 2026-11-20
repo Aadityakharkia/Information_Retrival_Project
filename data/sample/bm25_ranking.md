@@ -1,0 +1,2 @@
+# Okapi BM25 ranking
+BM25 is a probabilistic ranking function derived from the binary independence model. It combines inverse document frequency with a saturating term-frequency component controlled by k1 and document length normalisation controlled by b (Robertson and Zaragoza, 2009). Typical values are k1 = 1.2 and b = 0.75. BM25 remains a strong baseline for keyword search engines such as Lucene and Elasticsearch.

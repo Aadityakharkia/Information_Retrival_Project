@@ -1,0 +1,2 @@
+# PageRank and link analysis
+PageRank models a random surfer who follows hyperlinks and occasionally teleports to a random page. The stationary distribution gives each page an authority score (Brin and Page, 1998). HITS by Kleinberg computes hub and authority scores from the link graph. Web search engines combine link analysis with text relevance.

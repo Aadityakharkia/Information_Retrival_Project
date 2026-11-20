@@ -1,0 +1,2 @@
+# Dense retrieval with transformers
+Dense retrievers encode queries and documents into vectors with neural networks such as BERT. Relevance is estimated by cosine similarity or inner product. Sentence-BERT (Reimers and Gurevych, 2019) trains siamese networks so embeddings are comparable. Dense models may handle vocabulary mismatch better than keyword matching, but they can miss rare exact terms like product codes.

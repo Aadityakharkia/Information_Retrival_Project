@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.pkl
+.DS_Store
+.venv/
+results_sbert/
+data/library/
+data/web/
+data/research_papers/

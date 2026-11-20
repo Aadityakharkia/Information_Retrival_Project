@@ -1,0 +1,2 @@
+# Evaluating search engines
+Precision measures the fraction of retrieved documents that are relevant and recall the fraction of relevant documents that are retrieved. Mean average precision (MAP) and normalised discounted cumulative gain (nDCG) evaluate ranked lists. Test collections such as Cranfield and TREC provide queries and relevance judgements. BPref is robust when judgements are incomplete.

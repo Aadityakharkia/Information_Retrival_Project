@@ -1,0 +1,412 @@
+{
+ "name": "SearchBridge demo ontology (aerospace + IR/ML)",
+ "concepts": [
+  {
+   "cid": "boundary_layer",
+   "label": "boundary layer",
+   "aliases": [
+    "boundary layers",
+    "viscous layer"
+   ],
+   "broader": [
+    "fluid_dynamics"
+   ],
+   "related": [
+    "skin_friction",
+    "transition",
+    "separation"
+   ],
+   "description": "thin viscous region of flow near a wall surface velocity profile"
+  },
+  {
+   "cid": "transition",
+   "label": "laminar-turbulent transition",
+   "aliases": [
+    "boundary layer transition"
+   ],
+   "broader": [
+    "boundary_layer"
+   ],
+   "related": [
+    "turbulence"
+   ],
+   "description": "change from laminar to turbulent flow reynolds number"
+  },
+  {
+   "cid": "turbulence",
+   "label": "turbulent flow",
+   "aliases": [
+    "turbulence"
+   ],
+   "broader": [
+    "fluid_dynamics"
+   ],
+   "related": [
+    "transition"
+   ],
+   "description": "chaotic eddies mixing fluctuating velocity"
+  },
+  {
+   "cid": "separation",
+   "label": "flow separation",
+   "aliases": [
+    "separated flow"
+   ],
+   "broader": [
+    "boundary_layer"
+   ],
+   "related": [
+    "stall"
+   ],
+   "description": "boundary layer detaches from surface adverse pressure gradient"
+  },
+  {
+   "cid": "skin_friction",
+   "label": "skin friction",
+   "aliases": [
+    "skin friction drag",
+    "wall shear"
+   ],
+   "broader": [
+    "drag"
+   ],
+   "related": [
+    "boundary_layer"
+   ],
+   "description": "shear stress at the wall friction coefficient"
+  },
+  {
+   "cid": "drag",
+   "label": "drag",
+   "aliases": [
+    "aerodynamic drag",
+    "drag coefficient"
+   ],
+   "broader": [
+    "aerodynamics"
+   ],
+   "related": [
+    "lift"
+   ],
+   "description": "force opposing motion wave drag induced drag"
+  },
+  {
+   "cid": "lift",
+   "label": "lift",
+   "aliases": [
+    "lift coefficient"
+   ],
+   "broader": [
+    "aerodynamics"
+   ],
+   "related": [
+    "wing",
+    "airfoil"
+   ],
+   "description": "force normal to flow on wing angle of attack"
+  },
+  {
+   "cid": "wing",
+   "label": "wing",
+   "aliases": [
+    "wings",
+    "swept wing",
+    "delta wing"
+   ],
+   "broader": [
+    "aircraft"
+   ],
+   "related": [
+    "lift",
+    "airfoil",
+    "aeroelasticity"
+   ],
+   "description": "lifting surface of aircraft span aspect ratio"
+  },
+  {
+   "cid": "airfoil",
+   "label": "airfoil",
+   "aliases": [
+    "aerofoil",
+    "wing section",
+    "naca"
+   ],
+   "broader": [
+    "wing"
+   ],
+   "related": [
+    "lift"
+   ],
+   "description": "two dimensional wing section profile"
+  },
+  {
+   "cid": "shock_wave",
+   "label": "shock wave",
+   "aliases": [
+    "oblique shock",
+    "normal shock"
+   ],
+   "broader": [
+    "supersonic_flow"
+   ],
+   "related": [
+    "drag"
+   ],
+   "description": "discontinuity in compressible supersonic flow pressure jump"
+  },
+  {
+   "cid": "supersonic_flow",
+   "label": "supersonic flow",
+   "aliases": [
+    "mach number greater than one"
+   ],
+   "broader": [
+    "compressible_flow"
+   ],
+   "related": [
+    "shock_wave",
+    "hypersonic_flow"
+   ],
+   "description": "flow faster than sound mach"
+  },
+  {
+   "cid": "hypersonic_flow",
+   "label": "hypersonic flow",
+   "aliases": [
+    "high mach number"
+   ],
+   "broader": [
+    "compressible_flow"
+   ],
+   "related": [
+    "heat_transfer",
+    "shock_wave"
+   ],
+   "description": "very high mach number flow re-entry"
+  },
+  {
+   "cid": "compressible_flow",
+   "label": "compressible flow",
+   "aliases": [
+    "gas dynamics"
+   ],
+   "broader": [
+    "fluid_dynamics"
+   ],
+   "related": [],
+   "description": "density changes significant mach number"
+  },
+  {
+   "cid": "heat_transfer",
+   "label": "heat transfer",
+   "aliases": [
+    "aerodynamic heating",
+    "heat flux"
+   ],
+   "broader": [
+    "thermodynamics"
+   ],
+   "related": [
+    "hypersonic_flow",
+    "boundary_layer"
+   ],
+   "description": "convective heat transfer rate temperature wall stanton number"
+  },
+  {
+   "cid": "aeroelasticity",
+   "label": "aeroelasticity",
+   "aliases": [
+    "aeroelastic",
+    "flutter",
+    "divergence"
+   ],
+   "broader": [
+    "structures"
+   ],
+   "related": [
+    "wing",
+    "vibration"
+   ],
+   "description": "interaction of aerodynamic and elastic forces flutter speed"
+  },
+  {
+   "cid": "vibration",
+   "label": "vibration",
+   "aliases": [
+    "natural frequency"
+   ],
+   "broader": [
+    "structures"
+   ],
+   "related": [
+    "aeroelasticity",
+    "buckling"
+   ],
+   "description": "oscillatory motion of structure frequency mode"
+  },
+  {
+   "cid": "buckling",
+   "label": "buckling",
+   "aliases": [
+    "buckle",
+    "instability of shells",
+    "shell buckling"
+   ],
+   "broader": [
+    "structures"
+   ],
+   "related": [
+    "vibration"
+   ],
+   "description": "structural instability under compressive load cylinders plates shells"
+  },
+  {
+   "cid": "structures",
+   "label": "structural mechanics",
+   "aliases": [
+    "stress analysis"
+   ],
+   "broader": [],
+   "related": [],
+   "description": "plates shells beams stress strain load"
+  },
+  {
+   "cid": "fluid_dynamics",
+   "label": "fluid dynamics",
+   "aliases": [
+    "fluid mechanics"
+   ],
+   "broader": [],
+   "related": [],
+   "description": "motion of fluids navier stokes equations"
+  },
+  {
+   "cid": "aerodynamics",
+   "label": "aerodynamics",
+   "aliases": [],
+   "broader": [
+    "fluid_dynamics"
+   ],
+   "related": [],
+   "description": "forces on bodies moving through air"
+  },
+  {
+   "cid": "aircraft",
+   "label": "aircraft",
+   "aliases": [
+    "airplane",
+    "aeroplane",
+    "missile"
+   ],
+   "broader": [],
+   "related": [],
+   "description": "flight vehicle"
+  },
+  {
+   "cid": "thermodynamics",
+   "label": "thermodynamics",
+   "aliases": [],
+   "broader": [],
+   "related": [],
+   "description": "heat temperature energy"
+  },
+  {
+   "cid": "stall",
+   "label": "stall",
+   "aliases": [],
+   "broader": [
+    "aerodynamics"
+   ],
+   "related": [
+    "separation"
+   ],
+   "description": "loss of lift at high angle of attack"
+  },
+  {
+   "cid": "navier_stokes",
+   "label": "navier-stokes equations",
+   "aliases": [
+    "navier stokes",
+    "viscous flow equations"
+   ],
+   "broader": [
+    "fluid_dynamics"
+   ],
+   "related": [
+    "boundary_layer"
+   ],
+   "description": "governing equations viscous flow"
+  },
+  {
+   "cid": "information_retrieval",
+   "label": "information retrieval",
+   "aliases": [
+    "search engine",
+    "document retrieval"
+   ],
+   "broader": [],
+   "related": [
+    "bm25",
+    "tf_idf"
+   ],
+   "description": "finding relevant documents ranking queries"
+  },
+  {
+   "cid": "bm25",
+   "label": "BM25",
+   "aliases": [
+    "okapi bm25"
+   ],
+   "broader": [
+    "information_retrieval"
+   ],
+   "related": [
+    "tf_idf"
+   ],
+   "description": "probabilistic ranking function term frequency saturation"
+  },
+  {
+   "cid": "tf_idf",
+   "label": "TF-IDF",
+   "aliases": [
+    "tfidf",
+    "tf idf",
+    "term weighting"
+   ],
+   "broader": [
+    "information_retrieval"
+   ],
+   "related": [
+    "bm25"
+   ],
+   "description": "term frequency inverse document frequency weighting"
+  },
+  {
+   "cid": "machine_learning",
+   "label": "machine learning",
+   "aliases": [
+    "learning algorithms"
+   ],
+   "broader": [],
+   "related": [
+    "neural_network"
+   ],
+   "description": "models learn from data"
+  },
+  {
+   "cid": "neural_network",
+   "label": "neural network",
+   "aliases": [
+    "neural networks",
+    "deep learning",
+    "transformer",
+    "bert"
+   ],
+   "broader": [
+    "machine_learning"
+   ],
+   "related": [],
+   "description": "layers of neurons trained with backpropagation embeddings"
+  }
+ ]
+}

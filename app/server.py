@@ -16,6 +16,10 @@ import math
 import os
 import shutil
 import sys
+<<<<<<< HEAD
+=======
+import tempfile
+>>>>>>> 1d6f999a29f64cc4785f3e1f1baa07f014efb4c0
 import threading
 import time
 from collections import Counter
@@ -32,7 +36,11 @@ from pydantic import BaseModel
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+<<<<<<< HEAD
 from searchbridge.documents import Document, load_cranfield, load_directory, load_jsonl  # noqa: E402
+=======
+from searchbridge.documents import Document, load_cranfield, load_directory, load_file, load_jsonl  # noqa: E402
+>>>>>>> 1d6f999a29f64cc4785f3e1f1baa07f014efb4c0
 from searchbridge.engine import MODE_INFO, MODES, EngineConfig, SearchEngine  # noqa: E402
 from searchbridge.retrieval.bridge_prf import BridgePRFConfig  # noqa: E402
 from searchbridge.index.compression import compression_report  # noqa: E402
@@ -47,7 +55,11 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 CACHE = Path(os.environ.get("SEARCHBRIDGE_CACHE", Path.home() / ".cache" / "searchbridge"))   # outside iCloud/Dropbox folders
 LIBRARY = Path(os.environ.get("SEARCHBRIDGE_LIBRARY", ROOT / "data/library"))
 ALLOWED = {".pdf", ".txt", ".md", ".html", ".htm", ".json", ".jsonl"}
+<<<<<<< HEAD
 CODE_VERSION = "5"   # bump to invalidate cached indexes after engine changes
+=======
+CODE_VERSION = "6"   # bump to invalidate cached indexes after engine changes
+>>>>>>> 1d6f999a29f64cc4785f3e1f1baa07f014efb4c0
 
 
 class Collection:
@@ -63,20 +75,37 @@ class Collection:
     def fingerprint(self) -> str:
         h = hashlib.sha1(f"{CODE_VERSION}:{self.encoder}:{_has_sbert()}".encode())
         for src in self.sources:
+<<<<<<< HEAD
             files = [src] if src.is_file() else sorted(p for p in src.rglob("*") if p.is_file() and ".trash" not in p.parts) if src.exists() else []
             for f in files:
                 st = f.stat()
                 h.update(f"{f}:{st.st_size}:{int(st.st_mtime)}".encode())
+=======
+            files = [src] if src.is_file() else sorted(p for p in src.rglob("*") if p.is_file() and not any(part.startswith(".") for part in p.relative_to(src).parts)) if src.exists() else []
+            for f in files:
+                st = f.stat()
+                h.update(f"{f}:{st.st_size}:{st.st_mtime_ns}".encode())
+>>>>>>> 1d6f999a29f64cc4785f3e1f1baa07f014efb4c0
         return h.hexdigest()[:12]
 
     def build(self, force: bool = False) -> None:
         with self.lock:
+<<<<<<< HEAD
             self.status, self.error, self.progress_started = "building", "", time.time()
+=======
+            if self.engine is None:
+                self.status = "building"
+            self.error, self.progress_started = "", time.time()
+>>>>>>> 1d6f999a29f64cc4785f3e1f1baa07f014efb4c0
             try:
                 CACHE.mkdir(parents=True, exist_ok=True)
                 cache = CACHE / f"{self.id}-{self.fingerprint()}.pkl"
                 if cache.exists() and not force:
+<<<<<<< HEAD
                     self.engine = SearchEngine.load(cache)
+=======
+                    candidate = SearchEngine.load(cache)
+>>>>>>> 1d6f999a29f64cc4785f3e1f1baa07f014efb4c0
                 else:
                     docs = self.loader()
                     if not docs:
@@ -89,6 +118,7 @@ class Collection:
                                        encoder=self.encoder, hybrid_alpha=0.5,
                                        # app defaults chosen to be robust across both benchmarks (see REPORT §6)
                                        bridge=BridgePRFConfig(fb_docs=3, alpha=0.5))
+<<<<<<< HEAD
                     self.engine = SearchEngine.from_documents(docs, cfg)
                     for old in CACHE.glob(f"{self.id}-*.pkl"):
                         old.unlink(missing_ok=True)
@@ -98,6 +128,25 @@ class Collection:
             except Exception as e:  # pragma: no cover - surfaced to UI
                 log.exception("building %s failed", self.id)
                 self.status, self.error = "error", str(e)
+=======
+                    candidate = SearchEngine.from_documents(docs, cfg)
+                    with tempfile.NamedTemporaryFile(dir=CACHE, delete=False) as tmp:
+                        pending = Path(tmp.name)
+                    try:
+                        candidate.save(pending)
+                        pending.replace(cache)
+                    finally:
+                        pending.unlink(missing_ok=True)
+                    for old in CACHE.glob(f"{self.id}-*.pkl"):
+                        if old != cache:
+                            old.unlink(missing_ok=True)
+                self.engine, self.status = candidate, "ready"
+                log.info("collection %s ready (%d docs)", self.id, len(self.engine.docs))
+            except Exception as e:  # pragma: no cover - surfaced to UI
+                log.exception("building %s failed", self.id)
+                self.status = "ready" if self.engine is not None else "error"
+                self.error = str(e)
+>>>>>>> 1d6f999a29f64cc4785f3e1f1baa07f014efb4c0
 
     def info(self) -> Dict:
         d = {"id": self.id, "name": self.name, "description": self.description, "status": self.status, "error": self.error}
@@ -547,8 +596,31 @@ async def library_upload(files: List[UploadFile] = File(...)):  # noqa: B008
         if len(data) > 50_000_000:
             rejected.append({"name": name, "reason": "larger than 50 MB"})
             continue
+<<<<<<< HEAD
         (LIBRARY / name).write_bytes(data)
         saved.append(name)
+=======
+        if name.startswith("."):
+            rejected.append({"name": name, "reason": "hidden files are excluded from the index"})
+            continue
+        with tempfile.TemporaryDirectory(dir=LIBRARY, prefix=".upload-") as staging:
+            candidate = Path(staging) / name
+            candidate.write_bytes(data)
+            try:
+                if candidate.suffix.lower() in {".json", ".jsonl"}:
+                    docs = load_jsonl(candidate)
+                    if not docs or any(not doc.full_text.strip() for doc in docs):
+                        raise ValueError("each record needs a title or text")
+                else:
+                    doc = load_file(candidate)
+                    if doc is None or not doc.text.strip():
+                        raise ValueError("file contains no extractable text")
+            except Exception as exc:
+                rejected.append({"name": name, "reason": str(exc)})
+                continue
+            candidate.replace(LIBRARY / name)
+            saved.append(name)
+>>>>>>> 1d6f999a29f64cc4785f3e1f1baa07f014efb4c0
     if saved:
         threading.Thread(target=COLLECTIONS["library"].build, kwargs={"force": True}, daemon=True).start()
     return {"saved": saved, "rejected": rejected}

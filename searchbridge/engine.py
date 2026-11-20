@@ -174,7 +174,18 @@ class SearchEngine:
             self.phrases.update({t.lower() for t in d.tags})
         # short "summary" view (title + abstract or opening text): avoids reference lists and
         # boilerplate dominating phrase mining, topics and the knowledge graph
+<<<<<<< HEAD
         summaries = [f"{d.title}. {d.meta.get('abstract') or d.text[:2500].rsplit(' ', 1)[0]}" for d in self.docs]   # cut at a word boundary
+=======
+        summaries = []
+        for d in self.docs:
+            excerpt = d.meta.get("abstract")
+            if not excerpt:
+                excerpt = d.text[:2500]
+                if len(d.text) > 2500 and not d.text[2500].isspace():
+                    excerpt = re.sub(r"\S+$", "", excerpt)
+            summaries.append(f"{d.title}. {excerpt}")
+>>>>>>> 1d6f999a29f64cc4785f3e1f1baa07f014efb4c0
         if c.build_kg:
             onto = Ontology.load(c.ontology_path) if c.ontology_path and Path(c.ontology_path).exists() else None
             miner = CollocationMiner(min_count=max(3, len(self.docs) // 400)).fit(summaries)
@@ -296,7 +307,23 @@ class SearchEngine:
             for t in d.tags:
                 if t != t.lower():
                     casing.setdefault(t.lower(), t)
+<<<<<<< HEAD
         cf = self.index.collection_tf()
+=======
+        # Score cluster words against the same summary corpus, including metadata abstracts.
+        cluster_words = [Counter() for _ in range(k)]
+        label_words = self.surface.copy()
+        for cluster, summary in zip(lab, summaries):
+            words = Counter(tokenize(summary, self.cfg.preprocess.split_hyphens))
+            for word, frequency in words.items():
+                term = self.analyzer.analyze_term(word)
+                if term:
+                    cluster_words[cluster][term] += frequency
+                    label_words.setdefault(term, word)
+        cf: Counter = Counter()
+        for counts in cluster_words:
+            cf.update(counts)
+>>>>>>> 1d6f999a29f64cc4785f3e1f1baa07f014efb4c0
         total = sum(cf.values())
         labels: Dict[int, str] = {}
         used: set = set()
@@ -307,6 +334,7 @@ class SearchEngine:
                 tagc.update({t.lower() for t in self.docs[i].tags})
             cands = [(cnt * math.log(n / global_tags[t]), t) for t, cnt in tagc.items() if cnt >= 2 and len(t.split()) <= 3]
             if not cands:   # distinctive words: cluster tf vs collection tf
+<<<<<<< HEAD
                 ctf: Counter = Counter()
                 for i in members:
                     ctf.update(self.analyzer(summaries[i]))
@@ -314,6 +342,12 @@ class SearchEngine:
                 cands = [(v / ct * math.log((v / ct) / (cf[w] / total) + 1e-9), self.surface.get(w, w))
                          for w, v in ctf.items() if v >= 2 and len(w) > 2 and cf.get(w, 0) > 0
                          and self.surface.get(w, w) not in STOPWORDS]
+=======
+                ctf = cluster_words[c]
+                ct = sum(ctf.values())
+                cands = [(v / ct * math.log((v / ct) / (cf[w] / total) + 1e-9), label_words[w])
+                         for w, v in ctf.items() if v >= 2 and len(w) > 2 and label_words[w] not in STOPWORDS]
+>>>>>>> 1d6f999a29f64cc4785f3e1f1baa07f014efb4c0
             picked = []
             for _, t in sorted(cands, reverse=True):
                 if t not in used and not any(t in p or p in t for p in picked):

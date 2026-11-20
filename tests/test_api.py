@@ -73,3 +73,44 @@ def test_library_upload_rejects_bad_types(client):
 def test_frontend_served(client):
     assert "SearchBridge" in client.get("/").text
     assert client.get("/static/papers/app.js").status_code == 200
+<<<<<<< HEAD
+=======
+
+
+def test_upload_rejects_invalid_replacement_without_losing_search(tmp_path, monkeypatch):
+    from app import server
+
+    library = tmp_path / "library"
+    monkeypatch.setattr(server, "LIBRARY", library)
+    monkeypatch.setattr(server, "CACHE", tmp_path / "cache")
+    collection = server.Collection("library", "Library", "", server._library_docs, [library], encoder="lsa")
+    monkeypatch.setitem(server.COLLECTIONS, "library", collection)
+    client = TestClient(server.app)
+    original = b'[{"id":"one","text":"saffron crocus flowers"}]'
+    def upload(data):
+        return client.post("/api/library/upload", files={"files": ("notes.json", data, "application/json")}).json()
+
+    assert upload(original)["saved"] == ["notes.json"]
+    # Wait for the real background worker before querying.
+    import time
+    deadline = time.monotonic() + 15
+    while collection.status in {"idle", "building"} and time.monotonic() < deadline:
+        time.sleep(0.01)
+    for bad in (b'{"unfinished":', b'[{"id":"one","text":42}]'):
+        result = upload(bad)
+        assert not result["saved"] and result["rejected"][0]["name"] == "notes.json"
+        assert (library / "notes.json").read_bytes() == original
+        response = client.get("/api/search", params={"c": "library", "q": "saffron", "log": False})
+        assert response.status_code == 200 and response.json()["hits"][0]["doc_id"] == "one"
+
+    previous = collection.engine
+    cache = next(server.CACHE.glob("library-*.pkl"))
+    def fail_save(candidate, path):
+        assert server.eng("library") is previous
+        Path(path).write_bytes(b"partial")
+        raise OSError("disk full")
+    monkeypatch.setattr(SearchEngine, "save", fail_save)
+    collection.build(force=True)
+    assert server.eng("library") is previous and collection.error == "disk full"
+    assert SearchEngine.load(cache).docs[0].doc_id == "one"
+>>>>>>> 1d6f999a29f64cc4785f3e1f1baa07f014efb4c0

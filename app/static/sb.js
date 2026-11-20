@@ -4,7 +4,11 @@ const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const fmt = (n) => Number(n || 0).toLocaleString("en-US");
+<<<<<<< HEAD
 const qs = (o) => new URLSearchParams(Object.entries(o).filter(([, v]) => v !== "" && v !== null && v !== undefined && v !== false)).toString();
+=======
+const qs = (o) => new URLSearchParams(Object.entries(o).filter(([, v]) => v !== "" && v !== null && v !== undefined)).toString();
+>>>>>>> 1d6f999a29f64cc4785f3e1f1baa07f014efb4c0
 const S = { info: null, c: localStorage.getItem("sb.c") || "", results: null, dwell: null };
 
 async function api(path, opts = {}) {
@@ -242,14 +246,24 @@ async function pageSearch(params) {
   const mode = params.mode || "smart";
   const personalize = params.personal !== "off";
   const prev = sessionStorage.getItem("sb.prev") || "";
+<<<<<<< HEAD
   let r;
   try { r = await api(`/api/search?${qs({ c: S.c, q, mode, k: 10, offset: 0, ...filters, personalize, context: prev !== q ? prev : "" })}`); }
+=======
+  const spell = params.spell !== "false";
+  let r;
+  try { r = await api(`/api/search?${qs({ c: S.c, q, mode, k: 10, offset: 0, ...filters, personalize, spell, context: prev !== q ? prev : "" })}`); }
+>>>>>>> 1d6f999a29f64cc4785f3e1f1baa07f014efb4c0
   catch (e) {
     $("#res").innerHTML = e.status === 503 ? `<p class="loading">${esc(e.message)}. Results will appear when indexing finishes.</p>` : `<p class="error">${esc(e.message)}</p>`;
     if (e.status === 503) setTimeout(route, 3000);
     return;
   }
+<<<<<<< HEAD
   S.results = { r, q, params, hits: r.hits, offset: r.hits.length, filters, mode, personalize };
+=======
+  S.results = { r, q, params, hits: r.hits, offset: r.hits.length, filters, mode, personalize, spell };
+>>>>>>> 1d6f999a29f64cc4785f3e1f1baa07f014efb4c0
   renderSide(r, params);
   renderResults();
 }
@@ -311,11 +325,19 @@ function renderResults() {
   if (r.corrected_query) notes.push(`<div class="note"><span>Showing results for <b>${esc(r.corrected_query)}</b>.</span><button class="link" data-orig>Search for “${esc(q)}” instead</button></div>`);
   if (r.notice) notes.push(`<div class="note"><span>${esc(r.notice)}</span></div>`);
   const cv = r.coverage || {};
+<<<<<<< HEAD
   if (cv.terms && cv.terms.length > 1 && (cv.all === 0 || cv.top_partial)) {
     const words = cv.terms.map((t) => `<b>${esc(t)}</b>`).join(" and ");
     notes.push(`<div class="note yellow"><span>${cv.all === 0 ? `No document in ${esc(coll().name)} contains all of ${words}.` : `Only ${cv.all} document${cv.all > 1 ? "s" : ""} in ${esc(coll().name)} contain${cv.all > 1 ? "" : "s"} all of ${words}, and ${cv.all > 1 ? "they mention" : "it mentions"} them only in passing.`} These are the closest matches; each shows which of your words it is missing.</span>
       ${cv.all ? `<button class="link" data-allwords>Show only documents with all words</button>` : ""}${S.info.collections.filter((c) => c.status === "ready" && c.id !== S.c).length ? `<button class="link" data-othercoll>Search another collection</button>` : ""}</div>`);
   } else if (cv.any === 0) notes.push(`<div class="note yellow"><span>None of your words appear in ${esc(coll().name)}; these results are matched by meaning only.</span></div>`);
+=======
+  if (hits.length && cv.terms && cv.terms.length > 1 && (cv.all === 0 || cv.top_partial)) {
+    const words = cv.terms.map((t) => `<b>${esc(t)}</b>`).join(" and ");
+    notes.push(`<div class="note yellow"><span>${cv.all === 0 ? `No document in ${esc(coll().name)} contains all of ${words}.` : `Only ${cv.all} document${cv.all > 1 ? "s" : ""} in ${esc(coll().name)} contain${cv.all > 1 ? "" : "s"} all of ${words}, and ${cv.all > 1 ? "they mention" : "it mentions"} them only in passing.`} These are the closest matches; each shows which of your words it is missing.</span>
+      ${cv.all ? `<button class="link" data-allwords>Show only documents with all words</button>` : ""}${S.info.collections.filter((c) => c.status === "ready" && c.id !== S.c).length ? `<button class="link" data-othercoll>Search another collection</button>` : ""}</div>`);
+  } else if (hits.length && cv.any === 0) notes.push(`<div class="note yellow"><span>None of your words appear in ${esc(coll().name)}; these results are matched by meaning only.</span></div>`);
+>>>>>>> 1d6f999a29f64cc4785f3e1f1baa07f014efb4c0
   if (r.personalized) notes.push(`<div class="note yellow">${svg("memory", 'width="16" height="16" style="stroke:#7A5A00;fill:none;stroke-width:2"')}<span>${r.personalized} result${r.personalized > 1 ? "s were" : " was"} moved by your search memory.</span><button class="link" data-personal="off">Show without it</button></div>`);
   else if (params.personal === "off") notes.push(`<div class="note"><span>Search memory is off for this search.</span><button class="link" data-personal="on">Turn it back on</button></div>`);
   if (r.context_used) notes.push(`<div class="note"><span>Using your previous search “${esc(r.context_used)}” as context.</span></div>`);
@@ -347,7 +369,11 @@ async function onResultsClick(e) {
     sessionStorage.setItem("sb.from", JSON.stringify({ q, rank: +card.dataset.i + 1, id: h.doc_id }));
     return;
   }
+<<<<<<< HEAD
   if (t.dataset.orig !== undefined) return api(`/api/search?${qs({ c: S.c, q, spell: false, k: 10 })}`).then((x) => { S.results.r = x; S.results.hits = x.hits; renderResults(); });
+=======
+  if (t.dataset.orig !== undefined) return go("search", { ...params, spell: false });
+>>>>>>> 1d6f999a29f64cc4785f3e1f1baa07f014efb4c0
   if (t.dataset.personal) return go("search", { ...params, personal: t.dataset.personal === "off" ? "off" : "" });
   if (t.dataset.cat) return go("search", { ...params, category: t.dataset.cat });
   if (t.dataset.allwords !== undefined) return go("search", { q: (r.coverage.terms || []).join(" AND "), c: S.c, mode: "boolean" });
@@ -388,7 +414,11 @@ async function onResultsClick(e) {
   }
   if (t.dataset.more !== undefined) {
     t.disabled = true;
+<<<<<<< HEAD
     const x = await api(`/api/search?${qs({ c: S.c, q, mode: S.results.mode, k: 10, offset: S.results.offset, ...S.results.filters, personalize: S.results.personalize, log: false })}`);
+=======
+    const x = await api(`/api/search?${qs({ c: S.c, q, mode: S.results.mode, k: 10, offset: S.results.offset, ...S.results.filters, personalize: S.results.personalize, spell: S.results.spell, log: false })}`);
+>>>>>>> 1d6f999a29f64cc4785f3e1f1baa07f014efb4c0
     const start = S.results.hits.length;
     S.results.hits.push(...x.hits);
     S.results.offset += x.hits.length;
@@ -636,7 +666,11 @@ async function pageLibrary() {
       <form id="up" class="form-row" style="margin-top:12px"><input type="file" id="files" multiple accept=".pdf,.txt,.md,.html,.htm,.json,.jsonl" class="input" style="flex:1"><button class="btn btn-primary btn-sm">Upload</button></form>
       ${lib.files.length ? `<table class="t"><tbody>${lib.files.map((f) => `<tr><td>${esc(f.name)}</td><td class="n tiny muted">${f.type} · ${fmt(Math.round(f.bytes / 1024))} KB</td><td class="n"><button class="ibtn" data-del="${esc(f.name)}">Remove</button></td></tr>`).join("")}</tbody></table>`
         : `<p class="small">No files yet. <button class="btn btn-ghost btn-sm" id="samples">Add the sample documents</button></p>`}
+<<<<<<< HEAD
       <p class="tiny muted" style="margin-top:8px">Status: ${esc(lib.status)}</p></div>
+=======
+      <p class="tiny muted" style="margin-top:8px">Status: ${esc(lib.status)}${lib.error ? ` · Last build failed: ${esc(lib.error)}` : ""}</p></div>
+>>>>>>> 1d6f999a29f64cc4785f3e1f1baa07f014efb4c0
     <div class="panel"><h3>Crawl a website</h3><p class="small muted">Pages become the “Web pages” collection. The crawler obeys robots.txt, waits at least a second between requests and stays inside the path you give. Check the site's terms before crawling.</p>
       <form id="cf" style="display:grid;gap:10px;margin-top:12px">
         <label class="small muted">Start page<input class="input" id="seed" style="width:100%" placeholder="https://en.wikipedia.org/wiki/Information_retrieval" required></label>
@@ -650,7 +684,13 @@ async function pageLibrary() {
     [...$("#files").files].forEach((f) => fd.append("files", f));
     if (!fd.has("files")) return;
     const r = await api("/api/library/upload", { method: "POST", body: fd });
+<<<<<<< HEAD
     toast(`Added ${r.saved.length} file${r.saved.length === 1 ? "" : "s"}${r.rejected.length ? `, ${r.rejected.length} rejected` : ""}. Indexing…`);
+=======
+    const messages = r.saved.length ? [`Indexing ${r.saved.length} uploaded file(s).`] : [];
+    for (const file of r.rejected) messages.push(`${file.name}: ${file.reason}`);
+    toast(messages.join(" "));
+>>>>>>> 1d6f999a29f64cc4785f3e1f1baa07f014efb4c0
     S.info = null; pageLibrary();
   });
   const sm = $("#samples");

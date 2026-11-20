@@ -274,6 +274,7 @@ def test_incomplete_boolean_queries_are_repaired_not_rejected(cran):
         assert r.hits and r.notice, q
 
 
+<<<<<<< HEAD
 def test_long_pages_cut_mid_word_still_build():
     # regression: topic labelling divided by the frequency of a word fragment created by truncation
     docs = [Document(f"d{i}", f"Page {i}", ("information retrieval ranking " * 200) + f"relationship{i} " * 3) for i in range(12)]
@@ -293,3 +294,49 @@ def test_html_extraction_keeps_article_and_drops_menus():
     for junk in ("Toggle", "sidebar", "[edit]", "[1]", "Privacy", "Bing", "Main page"):
         assert junk not in text, junk
     assert links == ["/wiki/Hyperlink"]
+=======
+def test_bridge_uses_semantic_only_evidence_and_skips_empty_query_vectors(cran, monkeypatch):
+    engine, _, _ = cran
+    query = "qzxvplm"
+    for mode in ("bridge", "smart"):
+        response = engine.search(query, mode=mode, spell=False)
+        assert not response.hits and not response.expansion_terms
+
+    vector = engine.dense.query_vector("wing flutter")
+    monkeypatch.setattr(engine.dense, "query_vector", lambda text: vector)
+    scores, parts = engine.bridge.score(engine.analyzer(query), query, return_parts=True)
+    assert not parts["L0"] and parts["feedback"] and scores
+
+
+def test_crawl_link_count_matches_exported_edges(tmp_path):
+    from scripts.crawl_web import crawl
+
+    seed = "https://example.org/a"
+    pages = {seed: '<title>Greenhouse gardening</title><a href="/a">self</a><a href="/b">trees</a><a href="/b">again</a>',
+             "https://example.org/b": "<title>Orchard trees</title>Apples and pears need water and sunlight."}
+    output = tmp_path / "pages.jsonl.gz"
+    stats = crawl([seed], out=output, delay=0, fetch=lambda url: (200, "text/html", pages[url]),
+                  robots_fetch=lambda url: "", log=lambda *args: None)
+    docs = load_jsonl(output)
+    saved = json.loads((tmp_path / "crawl_stats.json").read_text())
+    assert len(docs) == 2 and docs[0].links == ["https://example.org/b"] and docs[1].links == []
+    assert stats["links"] == saved["links"] == sum(len(doc.links) for doc in docs) == 1
+
+
+def test_topic_labels_handle_excerpt_boundaries_and_abstract_only_words():
+    docs = []
+    for i in range(8):
+        if i < 4:
+            # The old 2,500-character excerpt ended in "phot" inside "photometry".
+            text = "orbit " * 416 + "photometry measurements"
+            docs.append(Document(str(i), "Stars", text))
+        else:
+            docs.append(Document(str(i), "Trees", "forest roots soil",
+                                 {"abstract": "canopy canopy canopy"}))
+
+    engine = SearchEngine.from_documents(docs, EngineConfig(encoder="lsa", n_topics=2, build_kg=False))
+    labels = " ".join(engine.topic_labels.values()).lower().split()
+    assert "canopy" in labels and "phot" not in labels
+    assert len(engine.doc_topic) == len(docs)
+    assert engine.search("photometry", mode="bm25").hits
+>>>>>>> 1d6f999a29f64cc4785f3e1f1baa07f014efb4c0

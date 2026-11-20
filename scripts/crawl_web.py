@@ -49,13 +49,24 @@ def crawl(seeds, max_pages=300, depth=2, delay=1.0, prefix=None, exclude=(), out
         (out.parent / "crawl_stats.json").write_text(json.dumps(stats, indent=1))
         log(f"Crawl fetched no pages: {stats}")
         return stats
+<<<<<<< HEAD
+=======
+    link_count = 0
+>>>>>>> 1d6f999a29f64cc4785f3e1f1baa07f014efb4c0
     with gzip.open(out, "wt", encoding="utf-8") as f:
         for d in docs:
             title = d.title.replace(" - Wikipedia", "").strip()
             links = sorted({u for u in d.links if u in ids and u != d.doc_id})
+<<<<<<< HEAD
             f.write(json.dumps({"id": d.doc_id, "title": title, "text": d.text, "links": links,
                                 "source": d.doc_id, "type": "Web page", "site": d.doc_id.split("/")[2]}) + "\n")
     stats = dict(c.stats, pages=len(docs), error_examples=c.error_examples, blocked_examples=c.blocked_urls[:5], links=sum(len({u for u in d.links if u in ids}) for d in docs),
+=======
+            link_count += len(links)
+            f.write(json.dumps({"id": d.doc_id, "title": title, "text": d.text, "links": links,
+                                "source": d.doc_id, "type": "Web page", "site": d.doc_id.split("/")[2]}) + "\n")
+    stats = dict(c.stats, pages=len(docs), error_examples=c.error_examples, blocked_examples=c.blocked_urls[:5], links=link_count,
+>>>>>>> 1d6f999a29f64cc4785f3e1f1baa07f014efb4c0
                  seconds=round(time.time() - t0, 1), seeds=list(seeds))
     (out.parent / "crawl_stats.json").write_text(json.dumps(stats, indent=1))
     log(f"Saved {len(docs)} pages with {stats['links']} internal links to {out} ({stats})")

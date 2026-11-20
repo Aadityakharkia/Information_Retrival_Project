@@ -1,0 +1,2 @@
+Query expansion and relevance feedback
+The Rocchio algorithm moves the query vector towards relevant documents and away from non-relevant ones. Pseudo relevance feedback assumes the top ranked documents are relevant and adds their frequent terms, as in the RM3 relevance model. Expansion addresses vocabulary mismatch between users and authors.

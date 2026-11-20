@@ -1,0 +1,174 @@
+"""Document model and loaders for PDFs, text, Markdown, HTML, JSON(L) and Cranfield."""
+from __future__ import annotations
+
+import html
+import json
+import re
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Dict, Iterator, List, Optional, Tuple
+
+
+@dataclass
+class Document:
+    doc_id: str
+    title: str
+    text: str
+    meta: Dict[str, str] = field(default_factory=dict)
+    links: List[str] = field(default_factory=list)  # outgoing links / citations (doc_ids or URLs)
+    tags: List[str] = field(default_factory=list)   # author keyphrases / user tags
+
+    @property
+    def display_title(self) -> str:
+        t = self.title.strip() or self.doc_id
+        if t == t.lower():  # e.g. Cranfield titles are all lower-case
+            small = {"a", "an", "and", "as", "at", "by", "for", "in", "of", "on", "or", "the", "to", "with"}
+            t = " ".join(w if (i and w in small) else w[:1].upper() + w[1:] for i, w in enumerate(t.split()))
+        return t
+
+    @property
+    def full_text(self) -> str:
+        return f"{self.title}\n{self.text}" if self.title else self.text
+
+
+# --------------------------------------------------------------------------- loaders
+def _read_pdf_with_title(path: Path) -> Tuple[str, str]:
+    try:
+        from pypdf import PdfReader
+    except ImportError as e:  # pragma: no cover
+        raise ImportError("pip install pypdf to index PDFs") from e
+    reader = PdfReader(str(path))
+    title = ""
+    try:
+        title = (reader.metadata.title or "").strip() if reader.metadata else ""
+    except Exception:
+        title = ""
+    return "\n".join((p.extract_text() or "") for p in reader.pages), title
+
+
+_TAG_RE = re.compile(r"<[^>]+>")
+_HREF_RE = re.compile(r"""href=["']([^"'#]+)""", re.I)
+_TITLE_RE = re.compile(r"<title[^>]*>(.*?)</title>", re.I | re.S)
+
+
+def parse_html(raw: str) -> Tuple[str, str, List[str]]:
+    """Return (title, visible_text, hrefs). Strips script/style blocks."""
+    raw_noscript = re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", raw, flags=re.I | re.S)
+    m = _TITLE_RE.search(raw)
+    title = html.unescape(m.group(1).strip()) if m else ""
+    text = html.unescape(_TAG_RE.sub(" ", raw_noscript))
+    return title, re.sub(r"\s+", " ", text).strip(), _HREF_RE.findall(raw)
+
+
+def load_file(path: Path) -> Optional[Document]:
+    suf = path.suffix.lower()
+    if suf == ".pdf":
+        text, meta_title = _read_pdf_with_title(path)
+        lines = [ln.strip() for ln in text.splitlines() if len(ln.strip()) > 3]
+        guess = next((ln for ln in lines[:15] if 15 <= len(ln) <= 200 and not re.search(r"(arxiv|doi|http|@|vol\.|proceedings)", ln, re.I)),
+                     lines[0] if lines else path.stem)
+        title = meta_title if meta_title and len(meta_title) > 8 and not meta_title.lower().startswith(("microsoft", "untitled")) else guess
+        text = re.sub(r"(\w)-\n(\w)", r"\1\2", text)          # de-hyphenate line breaks
+        return Document(path.name, title[:200], text, {"source": str(path), "type": "PDF", "category": "My documents"})
+    if suf in {".txt", ".md", ".rst"}:
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        first = next((ln.strip("# ").strip() for ln in text.splitlines() if ln.strip()), path.stem)
+        return Document(path.name, first[:200], text, {"source": str(path), "type": suf[1:].upper(), "category": "My documents"})
+    if suf in {".html", ".htm"}:
+        title, text, links = parse_html(path.read_text(encoding="utf-8", errors="ignore"))
+        return Document(path.name, title or path.stem, text, {"source": str(path), "type": "HTML", "category": "My documents"}, links)
+    return None
+
+
+def load_directory(root: str | Path) -> List[Document]:
+    root = Path(root)
+    docs: List[Document] = []
+    for p in sorted(root.rglob("*")):
+        if p.is_file() and not any(part.startswith(".") for part in p.relative_to(root).parts):
+            if p.suffix.lower() in {".json", ".jsonl"} or p.name.endswith(".jsonl.gz"):
+                docs.extend(load_jsonl(p))
+                continue
+            d = load_file(p)
+            if d and d.text.strip():
+                d.doc_id = str(p.relative_to(root))
+                docs.append(d)
+    return docs
+
+
+def load_jsonl(path: str | Path) -> List[Document]:
+    """Each record: {"id", "title", "text", optional "links", "tags", other keys -> meta}.
+    Accepts .json (list), .jsonl and .jsonl.gz."""
+    import gzip
+    path = Path(path)
+    if path.suffix == ".gz":
+        raw = gzip.open(path, "rt", encoding="utf-8").read()
+    else:
+        raw = path.read_text(encoding="utf-8")
+    records = json.loads(raw) if path.suffix.lower() == ".json" else [json.loads(l) for l in raw.splitlines() if l.strip()]
+    docs = []
+    if not isinstance(records, list):
+        raise ValueError("JSON must contain an array of document records")
+    for i, r in enumerate(records, 1):
+        if not isinstance(r, dict) or not isinstance(r.get("id"), (str, int)) or not str(r["id"]).strip():
+            raise ValueError(f"record {i} needs a document id")
+        if any(not isinstance(r.get(key, ""), str) for key in ("title", "text")):
+            raise ValueError(f"record {i} needs string title and text fields")
+        for key in ("links", "tags"):
+            values = r.get(key, [])
+            if not isinstance(values, list) or not all(isinstance(value, str) for value in values):
+                raise ValueError(f"record {i} needs a list of strings for {key}")
+        meta = {k: str(v) for k, v in r.items() if k not in {"id", "title", "text", "links", "tags"}}
+        docs.append(Document(str(r["id"]), r.get("title", ""), r.get("text", ""), meta,
+                             list(r.get("links", [])), list(r.get("tags", []))))
+    return docs
+
+
+# --------------------------------------------------------------------------- Cranfield
+def _field(block: str, tag: str) -> str:
+    m = re.search(rf"<{tag}>(.*?)</{tag}>", block, re.S)
+    return re.sub(r"\s+", " ", m.group(1)).strip() if m else ""
+
+
+def cranfield_venue(bib: str) -> str:
+    """Coarse publication-venue group from the Cranfield <bib> field.
+    Used as a class label (venue classification) and as a group for exposure-fairness audits."""
+    b = bib.lower()
+    if b.startswith("naca"):
+        return "NACA report (US)"
+    if b.startswith("nasa"):
+        return "NASA report (US)"
+    if b.startswith(("arc", "rae", "a.r.c", "r.a.e", "cranfield", "coa")):
+        return "ARC/RAE report (UK)"
+    if re.match(r"(j\.|jnl|journal|proc|aiaa|aero\.|q\. ?j|asme|trans|phil|zamm|zamp|z\.)", b):
+        return "Journal / proceedings"
+    return "Other / unknown"
+
+
+def load_cranfield(root: str | Path) -> Tuple[List[Document], Dict[str, str], Dict[str, Dict[str, int]]]:
+    """Cranfield 1400 test collection (Cleverdon, 1967) in TREC-style XML.
+
+    Returns docs, queries {qid: text}, qrels {qid: {doc_id: grade}}.
+    Note: qrel query ids are the *sequential* position (1..225) of the query in cran.qry.xml.
+    """
+    root = Path(root)
+    raw = (root / "cran.all.1400.xml").read_text(encoding="utf-8", errors="ignore")
+    docs = []
+    for block in re.findall(r"<doc>(.*?)</doc>", raw, re.S):
+        did = _field(block, "docno")
+        bib = _field(block, "bib")
+        docs.append(Document(did, _field(block, "title").rstrip(" ."), _field(block, "text"),
+                             {"author": _field(block, "author"), "bib": bib, "venue": cranfield_venue(bib),
+                              "category": cranfield_venue(bib), "type": "Abstract"}))
+    qraw = (root / "cran.qry.xml").read_text(encoding="utf-8", errors="ignore")
+    queries = {str(i + 1): _field(b, "title") for i, b in enumerate(re.findall(r"<top>(.*?)</top>", qraw, re.S))}
+    qrels: Dict[str, Dict[str, int]] = {}
+    for line in (root / "cranqrel.trec.txt").read_text().splitlines():
+        parts = line.split()
+        if len(parts) == 4:  # keep grade-0 rows: they are *judged non-relevant* (needed by BPref)
+            qrels.setdefault(parts[0], {})[parts[2]] = int(parts[3])
+    return docs, queries, qrels
+
+
+def iter_text(docs: List[Document]) -> Iterator[Tuple[str, str]]:
+    for d in docs:
+        yield d.doc_id, d.full_text

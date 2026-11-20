@@ -1,0 +1,28 @@
+{
+ "fetched": 208,
+ "robots_blocked": 43,
+ "out_of_scope": 82,
+ "dup_exact": 0,
+ "dup_near": 8,
+ "errors": 5,
+ "pages": 200,
+ "error_examples": [
+  "https://en.wikipedia.org/wiki/auth.wikimedia.org: HTTP Error 404: Not Found",
+  "https://en.wikipedia.org/wiki/Yahoo!_Inc._(1995\u20132017): 'ascii' codec can't encode character '\\u2013' in position 27: ordinal not in range(128)",
+  "https://en.wikipedia.org/wiki/Karen_Sp\u00e4rck_Jones: 'ascii' codec can't encode character '\\xe4' in position 18: ordinal not in range(128)",
+  "https://en.wikipedia.org/wiki/Karen_Sp\u00e4rck_Jones_Award: 'ascii' codec can't encode character '\\xe4' in position 18: ordinal not in range(128)",
+  "https://en.wikipedia.org/wiki/Human\u2013computer_information_retrieval: 'ascii' codec can't encode character '\\u2013' in position 15: ordinal not in range(128)"
+ ],
+ "blocked_examples": [
+  "https://ar.wikipedia.org/wiki/%D8%A7%D8%B3%D8%AA%D8%B1%D8%AC%D8%A7%D8%B9_%D8%A7%D9%84%D9%85%D8%B9%D9%84%D9%88%D9%85%D8%A7%D8%AA",
+  "https://az.wikipedia.org/wiki/%C4%B0nformasiya_axtar%C4%B1%C5%9F%C4%B1",
+  "https://bg.wikipedia.org/wiki/%D0%98%D0%B7%D0%B2%D0%BB%D0%B8%D1%87%D0%B0%D0%BD%D0%B5_%D0%BD%D0%B0_%D0%B8%D0%BD%D1%84%D0%BE%D1%80%D0%BC%D0%B0%D1%86%D0%B8%D1%8F",
+  "https://ca.wikipedia.org/wiki/Recuperaci%C3%B3_d%27informaci%C3%B3",
+  "https://cs.wikipedia.org/wiki/Z%C3%ADsk%C3%A1v%C3%A1n%C3%AD_informac%C3%AD"
+ ],
+ "links": 2428,
+ "seconds": 462.6,
+ "seeds": [
+  "https://en.wikipedia.org/wiki/Information_retrieval"
+ ]
+}

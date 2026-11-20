@@ -1,0 +1,13 @@
+numpy>=1.24
+scipy>=1.10
+scikit-learn>=1.3
+nltk>=3.8
+pypdf>=4.0
+matplotlib>=3.7
+fastapi>=0.110
+uvicorn>=0.29
+python-multipart>=0.0.9
+httpx>=0.27
+pytest>=8
+# optional: stronger semantic encoder (auto-detected)
+# sentence-transformers>=2.6

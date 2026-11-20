@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+*.pkl
+.pytest_cache/
+.ruff_cache/
+results_sbert/
+.DS_Store
+.cache/
+data/library/

@@ -1,0 +1,17 @@
+{
+ "papers": 21000,
+ "internal_citations": 165793,
+ "link_coverage": 0.986,
+ "classes": {
+  "Database": 3500,
+  "Natural language processing": 3500,
+  "Computer security": 3500,
+  "Information retrieval": 3500,
+  "Computer vision": 3500,
+  "Computer network": 3500
+ },
+ "per_class": 3500,
+ "min_year": 2000,
+ "source_papers": 4894081,
+ "seconds": 231
+}

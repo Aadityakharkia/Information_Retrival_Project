@@ -9,3 +9,7 @@ results_sbert/
 data/library/
 data/web/
 data/research_papers/
+# raw downloads (multi-GB); only the sampled collections in data/ are tracked
+dblp.v12.json
+bbc_data.csv
+data/dblp/papers.tmp

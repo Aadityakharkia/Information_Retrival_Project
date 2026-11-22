@@ -48,7 +48,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 CACHE = Path(os.environ.get("SEARCHBRIDGE_CACHE", Path.home() / ".cache" / "searchbridge"))   # outside iCloud/Dropbox folders
 LIBRARY = Path(os.environ.get("SEARCHBRIDGE_LIBRARY", ROOT / "data/library"))
 ALLOWED = {".pdf", ".txt", ".md", ".html", ".htm", ".json", ".jsonl"}
-CODE_VERSION = "7"   # bump to invalidate cached indexes after engine changes
+CODE_VERSION = "8"   # bump to invalidate cached indexes after engine changes
 
 
 class Collection:
@@ -140,10 +140,16 @@ EXAMPLES = {
                   '"boundary layer" AND (suction OR injection)', "buckling of cylindrical shells", "shock wave author:lees"],
     "library": [],
     "web": [],
+    "dblp": ["image segmentation", "sql query optimization", "intrusion detection system", "named entity recognition",
+             "learning to rank", "wireless sensor network routing", '"relevance feedback" AND NOT image', "colaborative filtering"],
+    "bbc": ["interest rates rise", "world cup qualifier", "general election campaign", "broadband internet",
+            "oscar nominations", "mobile phone sales", "chelsea AND NOT arsenal"],
 }
 
 RESEARCH = ROOT / "data/research_papers/papers.jsonl.gz"
 WEB = ROOT / "data/web/pages.jsonl.gz"
+DBLP = ROOT / "data/dblp/papers.jsonl.gz"
+BBC = ROOT / "data/bbc/articles.jsonl.gz"
 
 
 def _research_docs() -> List[Document]:
@@ -157,6 +163,15 @@ COLLECTIONS: Dict[str, Collection] = {
     "research": Collection("research", "Research Papers 2016–2025",
                            "The most-cited computer-science papers of 2016–2025 across 12 subfields (from OpenAlex), with abstracts, authors, venues, keywords and citations",
                            _research_docs, [ROOT / "data/research_papers"]),
+    "dblp": Collection("dblp", "DBLP Citation Network",
+                       "Highly cited computer-science papers (2000 onwards) from DBLP-Citation-network V12 in six fields - "
+                       "information retrieval, computer vision, NLP, networks, security and databases - with abstracts and the "
+                       "citations between them (build it with scripts/prepare_dblp.py)",
+                       lambda: load_jsonl(DBLP) if DBLP.exists() else [], [ROOT / "data/dblp"]),
+    "bbc": Collection("bbc", "BBC News",
+                      "2,225 BBC news articles from 2004-2005 labelled business, entertainment, politics, sport or tech "
+                      "(build it with scripts/prepare_bbc.py)",
+                      lambda: load_jsonl(BBC) if BBC.exists() else [], [ROOT / "data/bbc"], ontology=False),
     "cs": Collection("cs", "Classic CS Papers 1998–2007",
                      "2,243 older computer-science papers: 243 full ACM conference papers (SemEval-2010) and 2,000 journal abstracts (Inspec), with author keyphrases and citations",
                      lambda: load_jsonl(ROOT / "data/cs_papers/papers.jsonl.gz"), [ROOT / "data/cs_papers"]),
@@ -168,7 +183,8 @@ COLLECTIONS: Dict[str, Collection] = {
     "library": Collection("library", "My Library", "Your own PDFs, text, Markdown and HTML files — upload them on the Library page",
                           _library_docs, [LIBRARY], ontology=False),
 }
-DEFAULT = "research" if RESEARCH.exists() else "cs"
+DEFAULT = "research" if RESEARCH.exists() else "dblp" if DBLP.exists() else "cs"
+_SOURCE_FILE = {"research": RESEARCH, "web": WEB, "dblp": DBLP, "bbc": BBC}
 
 app = FastAPI(title="SearchBridge", version="3.0.0",
               description="Intelligent document search: hybrid lexical + semantic retrieval with explainable ranking.")
@@ -177,9 +193,9 @@ app = FastAPI(title="SearchBridge", version="3.0.0",
 @app.on_event("startup")
 def _startup() -> None:
     def run():
-        order = [DEFAULT] + [c for c in ("research", "cs", "web", "library", "cranfield") if c != DEFAULT]
+        order = [DEFAULT] + [c for c in ("research", "dblp", "cs", "bbc", "web", "library", "cranfield") if c != DEFAULT]
         for cid in order:
-            if (cid == "research" and not RESEARCH.exists()) or (cid == "web" and not WEB.exists()):
+            if cid in _SOURCE_FILE and not _SOURCE_FILE[cid].exists():
                 COLLECTIONS[cid].status = "missing"
                 continue
             COLLECTIONS[cid].build()
@@ -191,8 +207,10 @@ def eng(cid: str) -> SearchEngine:
     if not c:
         raise HTTPException(404, f"unknown collection {cid}")
     if c.status == "missing":
-        raise HTTPException(409, "No pages crawled yet. Crawl a site from the Library page." if cid == "web"
-                            else "This collection has not been downloaded yet. Run: python scripts/fetch_openalex.py")
+        how = {"web": "No pages crawled yet. Crawl a site from the Library page.",
+               "dblp": "This collection has not been built yet. Run: python scripts/prepare_dblp.py --input dblp.v12.json",
+               "bbc": "This collection has not been built yet. Run: python scripts/prepare_bbc.py --input bbc_data.csv"}
+        raise HTTPException(409, how.get(cid, "This collection has not been downloaded yet. Run: python scripts/fetch_openalex.py"))
     if c.status == "empty":
         raise HTTPException(409, "This collection is empty — upload documents on the Library page first.")
     if c.status != "ready" or c.engine is None:

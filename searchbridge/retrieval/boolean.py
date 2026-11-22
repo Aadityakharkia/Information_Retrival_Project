@@ -52,7 +52,9 @@ BOOLEAN_OPS = {"AND", "OR", "NOT"}
 
 
 def looks_boolean(query: str) -> bool:
-    return any(tok in BOOLEAN_OPS for tok in query.split()) or "(" in query
+    """Only upper-case AND / OR / NOT make a query Boolean; parentheses alone are ordinary punctuation
+    in natural-language queries ("kinetic theory (chapman-enskog)")."""
+    return any(tok.strip("()") in BOOLEAN_OPS for tok in query.split())
 
 
 def repair(query: str) -> str:
@@ -122,6 +124,7 @@ class BooleanParser:
         if tok.startswith('"'):
             m = re.match(r'"([^"]+)"(?:~(\d+))?', tok)
             return Phrase(m.group(1).split(), int(m.group(2) or 0))
+        tok = tok.rstrip("?") or tok           # trailing '?' ends a question; inside a word it is a wildcard
         if "*" in tok or "?" in tok:
             return Wildcard(tok.lower())
         return Term(tok)
@@ -135,41 +138,49 @@ class BooleanRetriever:
         self.expand_wildcard = wildcard_expander
         self.parser = BooleanParser()
 
-    def evaluate(self, node: Node) -> Set[int]:
+    def evaluate(self, node: Node) -> Optional[Set[int]]:
+        """Matching documents, or None for an operand that carries no terms (a stop word such as "the",
+        or a lower-case "and"): such operands are ignored, exactly as they are at indexing time,
+        instead of emptying the whole AND."""
         ix, an = self.index, self.index.analyzer
         if isinstance(node, Term):
             t = an.analyze_term(node.text)
-            return set(ix.get_postings(t)) if t else set()
+            return set(ix.get_postings(t)) if t else None
         if isinstance(node, Phrase):
             terms = [t for w in node.words for t in an(w)]
-            return set(ix.phrase_match(terms, node.slop))
+            return set(ix.phrase_match(terms, node.slop)) if terms else None
         if isinstance(node, Wildcard):
             surface = self.expand_wildcard(node.pattern) if self.expand_wildcard else []
             out: Set[int] = set()
             for w in surface:
-                out |= set(ix.get_postings(an.analyze_term(w)))
+                t = an.analyze_term(w)
+                if t:
+                    out |= set(ix.get_postings(t))
             return out
         if isinstance(node, Not):
-            return set(ix.live_docs()) - self.evaluate(node.child)
+            child = self.evaluate(node.child)
+            return None if child is None else set(ix.live_docs()) - child
         if isinstance(node, And):
             # Process positive operands in increasing df order (IIR §1.3 query optimisation).
-            pos = [c for c in node.children if not isinstance(c, Not)]
-            neg = [c for c in node.children if isinstance(c, Not)]
-            sets = sorted((self.evaluate(c) for c in pos), key=len)
-            res = sets[0] if sets else set(ix.live_docs())
+            pos = [s for s in (self.evaluate(c) for c in node.children if not isinstance(c, Not)) if s is not None]
+            neg = [s for s in (self.evaluate(c.child) for c in node.children if isinstance(c, Not)) if s is not None]
+            if not pos and not neg:
+                return None
+            sets = sorted(pos, key=len)
+            res = set(sets[0]) if sets else set(ix.live_docs())
             for s in sets[1:]:
-                res = res & s
+                res &= s
                 if not res:
                     break
-            for c in neg:
-                res = res - self.evaluate(c.child)
+            for s in neg:
+                res -= s
             return res
         if isinstance(node, Or):
-            res: Set[int] = set()
-            for c in node.children:
-                res |= self.evaluate(c)
-            return res
+            kids = [s for s in (self.evaluate(c) for c in node.children) if s is not None]
+            if not kids:
+                return None
+            return set().union(*kids)
         raise TypeError(node)
 
     def search_query(self, query: str) -> Set[int]:
-        return self.evaluate(self.parser.parse(query))
+        return self.evaluate(self.parser.parse(query)) or set()

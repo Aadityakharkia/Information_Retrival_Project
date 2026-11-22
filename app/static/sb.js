@@ -39,7 +39,7 @@ const ICON = {
   arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
 };
 const svg = (k, extra = "") => `<svg viewBox="0 0 24 24" aria-hidden="true" ${extra}>${ICON[k]}</svg>`;
-const COLL_STYLE = { research: ["atom", "var(--lav)"], cs: ["chip", "var(--mint)"], cranfield: ["plane", "var(--cream)"], web: ["globe", "#FDE8EC"], library: ["folder", "var(--blue-soft)"] };
+const COLL_STYLE = { research: ["atom", "var(--lav)"], cs: ["chip", "var(--mint)"], cranfield: ["plane", "var(--cream)"], web: ["globe", "#FDE8EC"], library: ["folder", "var(--blue-soft)"], dblp: ["net", "var(--lav)"], bbc: ["book", "var(--cream)"] };
 
 /* ------------------------------------------------------------------ collections */
 async function loadInfo() {

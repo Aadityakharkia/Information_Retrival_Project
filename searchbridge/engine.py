@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import math
+import os
 import pickle
 import re
 import time
@@ -206,6 +207,8 @@ class SearchEngine:
         self.link_graph = L.tocsr()
         self.link_in = L.T.tocsr()
         self.n_links = int(L.nnz)
+        linked = (np.diff(self.link_graph.indptr) > 0) | (np.diff(self.link_in.indptr) > 0)
+        self.link_coverage = float(linked.mean()) if n else 0.0     # share of documents with any link
         kinds = {d.meta.get("type", "") for d in self.docs if d.links}
         self.graph_kind = ("hyperlinks" if any("web" in k.lower() for k in kinds) else "citations") if self.n_links else "none"
         self.graph = self.link_graph
@@ -379,8 +382,49 @@ class SearchEngine:
                 return False
         return True
 
+    def _correct_word(self, w: str) -> str:
+        """Correct only words that look like typos. A word is left alone when it is in the collection, when it is
+        short (short words have too many one-letter neighbours: stop -> step), when the candidate just adds or
+        removes an affix (orthodox -> unorthodox), or when its stem is indexed and the candidate has a different
+        stem (efficiently -> sufficiently would change the search). One edit below 8 letters, two from 8 on."""
+        if w in self.kgram.freq or not w.isalpha() or len(w) <= 5:
+            return w
+        t = self.analyzer.analyze_term(w)
+        if not t:
+            return w
+        cands = self.kgram.suggest(w, max_dist=1 if len(w) < 8 else 2)
+        if not cands:
+            return w
+        f = cands[0][0]
+        if w in f or f in w:
+            return w
+        if t in self.index.postings:      # a real word (efficiently, invert): only fix pure misspellings of
+            # the same stem (relevence -> relevance), not inflections that differ only in the ending
+            same_stem = self.analyzer.analyze_term(f) == t
+            inflection = len(os.path.commonprefix([w, f])) >= min(len(w), len(f)) - 2
+            return f if same_stem and not inflection else w
+        return f
+
+    def _spell_correct(self, free: str) -> str:
+        """Fix typos word by word inside the original text, so quotes, wildcards and punctuation survive."""
+        def fix_word(m: re.Match) -> str:
+            word = m.group(0)
+            fixed = self._correct_word(word.lower())
+            return word if fixed == word.lower() else fixed
+
+        def fix_token(m: re.Match) -> str:
+            tok = m.group(0)
+            if "*" in tok or "?" in tok.rstrip("?") or ":" in tok:
+                return tok
+            return re.sub(r"[A-Za-z]+", fix_word, tok)
+        return re.sub(r"\S+", fix_token, free)
+
     def _expand_wildcards(self, text: str) -> str:
-        return " ".join(" ".join(self.kgram.wildcard(w, 5)) if "*" in w else w for w in text.split())
+        out = []
+        for w in text.split():
+            w = w.rstrip("?")                  # a question mark ending a question is punctuation, not a wildcard
+            out.append(" ".join(self.kgram.wildcard(w.lower(), 5)) if ("*" in w or "?" in w) else w)
+        return " ".join(out)
 
     # ------------------------------------------------------------------ main entry point
     def search(self, query: str, mode: str = "bridge", k: int = 10, spell: bool = True,
@@ -427,15 +471,9 @@ class SearchEngine:
                     notice = f"Could not read this as a Boolean query ({ex}); ranked by relevance instead."
                     mode = requested if requested != "boolean" else "bm25"
         if spell and mode != "boolean":
-            words = tokenize(free)
-            fixed, changed = self.kgram.correct_query(words)
-            # don't "correct" a word into its own plural / inflection ("civilization" -> "civilizations")
-            fixed = [w if (f.startswith(w) or w.startswith(f)) and self.analyzer.analyze_term(w) == self.analyzer.analyze_term(f) else f
-                     for w, f in zip(words, fixed)]
-            changed = fixed != words
-            if changed:
-                corrected = " ".join(fixed)
-                free = corrected
+            fixed_free = self._spell_correct(free)
+            if fixed_free != free:
+                corrected = free = fixed_free
         text = self._expand_wildcards(free.replace('"', ""))
         q_terms = self.analyzer(text)
         alpha = None
@@ -586,6 +624,13 @@ class SearchEngine:
 
     # ------------------------------------------------------------------ smart ranking
     W_PAGERANK, W_HITS, W_CONTEXT = 0.05, 0.05, 0.1
+    # Link authority is only trusted when the graph covers enough of the collection: with a handful of
+    # citations (e.g. 40 links among 2,243 papers) PageRank and HITS just reward the few linked documents.
+    MIN_LINK_COVERAGE = 0.2
+
+    @property
+    def links_usable(self) -> bool:
+        return bool(self.n_links) and getattr(self, "link_coverage", 1.0) >= self.MIN_LINK_COVERAGE
 
     def _smart(self, rel_scores: Dict[int, float], q_terms: Sequence[str], text: str,
                personal: Optional[PersonalContext], context: Optional[str], depth: int = 200):
@@ -600,7 +645,7 @@ class SearchEngine:
         ids = [d for d, _ in cand]
         bd: Dict[int, Dict[str, float]] = {d: {"relevance": round(r, 4)} for d, r in rel.items()}
         final = dict(rel)
-        if self.n_links:
+        if self.links_usable:
             auth, _, _ = self.hits_scores(ids)
             for d in ids:
                 pr, au = self.W_PAGERANK * float(self.pagerank[d]), self.W_HITS * auth.get(d, 0.0)
@@ -703,7 +748,8 @@ class SearchEngine:
     # ------------------------------------------------------------------ reports for the Insights page
     def link_report(self, top: int = 10) -> Dict:
         n = len(self.docs)
-        out = {"documents": n, "links": self.n_links, "kind": self.graph_kind}
+        out = {"documents": n, "links": self.n_links, "kind": self.graph_kind,
+               "link_coverage": round(getattr(self, "link_coverage", 0.0), 4), "used_in_ranking": self.links_usable}
         if not self.n_links:
             return out
         outdeg = np.diff(self.link_graph.indptr)

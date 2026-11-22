@@ -269,9 +269,12 @@ def test_incomplete_boolean_queries_are_repaired_not_rejected(cran):
     assert repair("wing AND") == "wing" and repair("( wing flutter") == "( wing flutter )"
     assert repair('"boundary layer') == '"boundary layer"'
     e, _, _ = cran
-    for q in ["wing AND", "flutter OR", "( wing flutter", "wing AND (flutter"]:
+    for q in ["wing AND", "flutter OR", "wing AND (flutter"]:
         r = e.search(q, k=5)
         assert r.hits and r.notice, q
+    r = e.search("( wing flutter", k=5, mode="boolean")        # an explicit Boolean search is still repaired
+    assert r.hits and r.notice
+    assert e.search("( wing flutter", k=5).hits                 # without operators it is an ordinary search
 
 
 def test_long_pages_cut_mid_word_still_build():
@@ -339,3 +342,64 @@ def test_topic_labels_handle_excerpt_boundaries_and_abstract_only_words():
     assert "canopy" in labels and "phot" not in labels
     assert len(engine.doc_topic) == len(docs)
     assert engine.search("photometry", mode="bm25").hits
+
+
+def test_boolean_ignores_stop_words_and_lowercase_connectives(cran):
+    engine, _, _ = cran
+    both = engine.boolean.search_query("boundary AND layer")
+    assert both and engine.boolean.search_query("the AND boundary") == engine.boolean.search_query("boundary")
+    assert engine.boolean.search_query("boundary and layer") == both          # lower-case "and" is a stop word
+    assert engine.boolean.search_query("NOT the") == set()                    # nothing to negate, nothing matched
+
+
+def test_question_mark_wildcard_and_trailing_question_mark(cran):
+    engine, _, _ = cran
+    assert engine.kgram.wildcard("h?at") == ["heat"]
+    assert engine.boolean.search_query("h?at") == engine.boolean.search_query("heat")
+    plain = [h.doc_id for h in engine.search("heat transfer", mode="bm25", k=5, spell=False).hits]
+    asked = [h.doc_id for h in engine.search("heat transfer?", mode="bm25", k=5, spell=False).hits]
+    assert asked == plain
+
+
+def test_parentheses_do_not_turn_a_natural_query_into_boolean(cran):
+    engine, _, _ = cran
+    r = engine.search("rigorous kinetic theory of gases (chapman-enskog theory)", mode="bm25", k=5)
+    assert r.mode == "bm25" and r.hits
+    assert engine.search("heat AND (transfer OR flux)", mode="bm25", k=5).mode == "boolean"
+
+
+def test_spelling_fixes_typos_but_not_real_words(cran):
+    engine, _, _ = cran
+    assert engine.search("boundry layer", mode="bm25", k=1).corrected_query == "boundary layer"
+    assert engine.search('"boundry layer"', mode="bm25", k=1).corrected_query == '"boundary layer"'
+    for real in ("how efficiently can anyone invert this", "orthodox theory", "stop the flow"):
+        assert engine.search(real, mode="bm25", k=1).corrected_query is None, real
+    assert engine.search("turbul* flow", mode="bm25", k=1).corrected_query is None     # wildcards are not "typos"
+
+
+def test_sparse_link_graph_is_not_used_for_ranking():
+    docs = [Document(f"d{i}", f"Paper {i}", "wing flutter aerodynamics " * (i % 5 + 1), links=["d1"] if i == 0 else [])
+            for i in range(40)]
+    e = SearchEngine.from_documents(docs, EngineConfig(encoder="lsa", lsa_dim=4, build_kg=False))
+    assert e.n_links == 1 and not e.links_usable
+    assert all("pagerank" not in h.breakdown for h in e.search("wing flutter", mode="smart", k=5).hits)
+
+
+def test_dblp_sampler_rebuilds_abstracts_and_keeps_internal_citations(tmp_path):
+    from scripts.prepare_dblp import main as prepare
+    def paper(pid, field, refs, year=2010):
+        return {"id": pid, "title": f"Paper {pid}", "year": year, "references": refs,
+                "indexed_abstract": {"IndexLength": 3, "InvertedIndex": {"ranking": [0], "web": [1, 2]}},
+                "fos": [{"name": field, "w": 0.6}, {"name": "Computer science", "w": 0.9}, {"name": "Ranking", "w": 0.4}]}
+    rows = [paper(1, "Information retrieval", [2, 3, 99]), paper(2, "Information retrieval", [3]),
+            paper(3, "Database", [1]), paper(4, "Database", [], year=1990), paper(5, "Biology", [1])]
+    dump = tmp_path / "dblp.json"
+    dump.write_text("[\n" + "\n,".join(json.dumps(r) for r in rows) + "\n]\n")
+    out = tmp_path / "dblp" / "papers.jsonl.gz"
+    prepare(["--input", str(dump), "--per-class", "5", "--out", str(out)])
+    docs = {d.doc_id: d for d in load_jsonl(out)}
+    assert set(docs) == {"dblp-1", "dblp-2", "dblp-3"}                    # too old / off-topic papers dropped
+    assert docs["dblp-1"].text == "ranking web web" and docs["dblp-1"].meta["category"] == "Information retrieval"
+    assert docs["dblp-1"].links == ["dblp-2", "dblp-3"]                   # citation 99 is outside the sample
+    assert docs["dblp-1"].tags == ["Ranking"]                              # labels and generic fields are not tags
+    assert json.loads((out.parent / "stats.json").read_text())["internal_citations"] == 4

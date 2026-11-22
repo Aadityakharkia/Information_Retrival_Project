@@ -30,7 +30,7 @@ def client(tmp_path_factory):
 
 def test_collections_and_search(client):
     info = client.get("/api/collections").json()
-    assert info["default"] in {"cs", "research"} and {m["id"] for m in info["modes"]} >= {"bridge", "bm25", "boolean"}
+    assert info["default"] in {"cs", "research", "dblp"} and {m["id"] for m in info["modes"]} >= {"bridge", "bm25", "boolean"}
     r = client.get("/api/search", params={"c": "cs", "q": "pagerank random surfer", "k": 3}).json()
     assert r["hits"][0]["doc_id"] == "pagerank.md"
     assert {"lexical", "semantic", "matched", "terms"} <= set(r["hits"][0]["signal"])

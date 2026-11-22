@@ -5,6 +5,7 @@ Operates on the *surface* (unstemmed) vocabulary so users' typed words can be co
 from __future__ import annotations
 
 import fnmatch
+import re
 from collections import Counter, defaultdict
 from typing import Dict, Iterable, List, Set, Tuple
 
@@ -48,7 +49,7 @@ class KGramIndex:
         """e.g. 'aero*ic' -> k-grams {$a, ae, er, ro, ic, c$} -> intersect -> post-filter."""
         padded = f"${pattern}$"
         grams: Set[str] = set()
-        for piece in padded.split("*"):
+        for piece in re.split(r"[*?]", padded):      # '*' = any run of letters, '?' = exactly one letter
             grams |= {piece[i:i + self.k] for i in range(len(piece) - self.k + 1)}
         if not grams:
             return []

@@ -1,0 +1,10 @@
+{
+ "articles": 2225,
+ "classes": {
+  "Entertainment": 386,
+  "Business": 510,
+  "Sport": 511,
+  "Politics": 417,
+  "Tech": 401
+ }
+}

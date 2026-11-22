@@ -87,7 +87,7 @@ Correlation of predicted alpha with oracle alpha: r = 0.084 (predicted alpha mea
 | Dictionary, fixed-width 20B/term | 93,520 | 1.0 |
 | Dictionary, blocked front-coding | 36,738 | 0.393 |
 
-Zipf exponent 1.626 (R² 0.935); Heaps k=23.96, b=0.447 (R² 0.998).
+Zipf exponent 0.925 (R² 0.89); Heaps k=23.96, b=0.447 (R² 0.998).
 
 ![zipf](figures/zipf_heaps.png)
 
@@ -115,8 +115,8 @@ Venue exposure in Bridge-PRF top-10 vs share of corpus:
 
 | Venue group | Corpus share | Exposure share |
 |---|---:|---:|
-| NACA report (US) | 0.128 | 0.122 |
 | Other / unknown | 0.226 | 0.232 |
+| NACA report (US) | 0.128 | 0.122 |
 | Journal / proceedings | 0.443 | 0.415 |
 | ARC/RAE report (UK) | 0.104 | 0.113 |
 | NASA report (US) | 0.099 | 0.117 |
@@ -143,7 +143,7 @@ Topical clustering: 179 documents from the relevant sets of 8 queries with disjo
 | k-means on LSA vectors | 0.7877 | 0.7153 |
 | HAC average-link on LSA vectors | 0.4078 | 0.4185 |
 | HAC complete-link on LSA vectors | 0.6536 | 0.6191 |
-| k-means on tf-idf vectors | 0.6872 | 0.5607 |
+| k-means on tf-idf vectors | 0.6872 | 0.5597 |
 | HAC average-link on tf-idf vectors | 0.4078 | 0.425 |
 | HAC complete-link on tf-idf vectors | 0.2179 | 0.0 |
 | random assignment (baseline) | 0.2849 | 0.0675 |

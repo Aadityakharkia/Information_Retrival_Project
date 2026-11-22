@@ -199,6 +199,13 @@ def main():
     ours_pq = systems[ours][1]["MAP"]; base_pq = systems[base][1]["MAP"]
     diff = np.array([ours_pq[q] - base_pq[q] for q in qids])
     R["win_tie_loss_vs_bm25"] = {"wins": int((diff > 1e-9).sum()), "ties": int((abs(diff) <= 1e-9).sum()), "losses": int((diff < -1e-9).sum())}
+    # Bridge-PRF against each method re-implemented from a published paper (paired randomisation test on AP)
+    R["bridge_vs_published"] = {}
+    for ref in systems:
+        if ref != ours:
+            a = [ours_pq[q] for q in qids]; b = [systems[ref][1]["MAP"][q] for q in qids]
+            R["bridge_vs_published"][ref] = {"MAP_ours": round(float(np.mean(a)), 4), "MAP_ref": round(float(np.mean(b)), 4),
+                                             "p_rand": round(randomization_test(a, b), 4)}
 
     # ------------------------------------------------------------------ E4 Boolean retrieval
     log("E4: Boolean set retrieval")

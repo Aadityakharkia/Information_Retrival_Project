@@ -13,3 +13,6 @@ data/research_papers/
 dblp.v12.json
 bbc_data.csv
 data/dblp/papers.tmp
+submission/
+.claude/
+.agents/

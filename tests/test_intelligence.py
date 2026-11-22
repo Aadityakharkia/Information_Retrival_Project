@@ -274,7 +274,6 @@ def test_incomplete_boolean_queries_are_repaired_not_rejected(cran):
         assert r.hits and r.notice, q
 
 
-<<<<<<< HEAD
 def test_long_pages_cut_mid_word_still_build():
     # regression: topic labelling divided by the frequency of a word fragment created by truncation
     docs = [Document(f"d{i}", f"Page {i}", ("information retrieval ranking " * 200) + f"relationship{i} " * 3) for i in range(12)]
@@ -294,7 +293,8 @@ def test_html_extraction_keeps_article_and_drops_menus():
     for junk in ("Toggle", "sidebar", "[edit]", "[1]", "Privacy", "Bing", "Main page"):
         assert junk not in text, junk
     assert links == ["/wiki/Hyperlink"]
-=======
+
+
 def test_bridge_uses_semantic_only_evidence_and_skips_empty_query_vectors(cran, monkeypatch):
     engine, _, _ = cran
     query = "qzxvplm"
@@ -339,4 +339,3 @@ def test_topic_labels_handle_excerpt_boundaries_and_abstract_only_words():
     assert "canopy" in labels and "phot" not in labels
     assert len(engine.doc_topic) == len(docs)
     assert engine.search("photometry", mode="bm25").hits
->>>>>>> 1d6f999a29f64cc4785f3e1f1baa07f014efb4c0

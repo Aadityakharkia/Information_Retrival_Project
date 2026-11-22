@@ -73,8 +73,6 @@ def test_library_upload_rejects_bad_types(client):
 def test_frontend_served(client):
     assert "SearchBridge" in client.get("/").text
     assert client.get("/static/papers/app.js").status_code == 200
-<<<<<<< HEAD
-=======
 
 
 def test_upload_rejects_invalid_replacement_without_losing_search(tmp_path, monkeypatch):
@@ -113,4 +111,3 @@ def test_upload_rejects_invalid_replacement_without_losing_search(tmp_path, monk
     collection.build(force=True)
     assert server.eng("library") is previous and collection.error == "disk full"
     assert SearchEngine.load(cache).docs[0].doc_id == "one"
->>>>>>> 1d6f999a29f64cc4785f3e1f1baa07f014efb4c0

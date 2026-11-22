@@ -1,11 +1,7 @@
 """Document model and loaders for PDFs, text, Markdown, HTML, JSON(L) and Cranfield."""
 from __future__ import annotations
 
-<<<<<<< HEAD
 from html.parser import HTMLParser
-=======
-import html
->>>>>>> 1d6f999a29f64cc4785f3e1f1baa07f014efb4c0
 import json
 import re
 from dataclasses import dataclass, field
@@ -55,7 +51,6 @@ _HREF_RE = re.compile(r"""href=["']([^"'#]+)""", re.I)
 _TITLE_RE = re.compile(r"<title[^>]*>(.*?)</title>", re.I | re.S)
 
 
-<<<<<<< HEAD
 _SKIP_TAGS = {"script", "style", "noscript", "template", "nav", "header", "footer", "aside", "form", "button",
               "select", "svg", "figure", "sup"}
 _INLINE = {"a", "span", "b", "i", "em", "strong", "code", "sub", "abbr", "small", "mark", "cite", "q", "u", "s", "kbd", "var"}
@@ -146,15 +141,6 @@ def parse_html(raw: str) -> Tuple[str, str, List[str]]:
         links = p.all_links + p.main_links
     title = re.sub(r"\s+", " ", p.title).strip()
     return title, text, links
-=======
-def parse_html(raw: str) -> Tuple[str, str, List[str]]:
-    """Return (title, visible_text, hrefs). Strips script/style blocks."""
-    raw_noscript = re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", raw, flags=re.I | re.S)
-    m = _TITLE_RE.search(raw)
-    title = html.unescape(m.group(1).strip()) if m else ""
-    text = html.unescape(_TAG_RE.sub(" ", raw_noscript))
-    return title, re.sub(r"\s+", " ", text).strip(), _HREF_RE.findall(raw)
->>>>>>> 1d6f999a29f64cc4785f3e1f1baa07f014efb4c0
 
 
 def load_file(path: Path) -> Optional[Document]:
@@ -201,11 +187,6 @@ def load_jsonl(path: str | Path) -> List[Document]:
         raw = gzip.open(path, "rt", encoding="utf-8").read()
     else:
         raw = path.read_text(encoding="utf-8")
-<<<<<<< HEAD
-    records = json.loads(raw) if path.suffix == ".json" else [json.loads(l) for l in raw.splitlines() if l.strip()]
-    docs = []
-    for r in records:
-=======
     records = json.loads(raw) if path.suffix.lower() == ".json" else [json.loads(l) for l in raw.splitlines() if l.strip()]
     docs = []
     if not isinstance(records, list):
@@ -219,7 +200,6 @@ def load_jsonl(path: str | Path) -> List[Document]:
             values = r.get(key, [])
             if not isinstance(values, list) or not all(isinstance(value, str) for value in values):
                 raise ValueError(f"record {i} needs a list of strings for {key}")
->>>>>>> 1d6f999a29f64cc4785f3e1f1baa07f014efb4c0
         meta = {k: str(v) for k, v in r.items() if k not in {"id", "title", "text", "links", "tags"}}
         docs.append(Document(str(r["id"]), r.get("title", ""), r.get("text", ""), meta,
                              list(r.get("links", [])), list(r.get("tags", []))))

@@ -54,14 +54,11 @@ class BridgePRF:
     def score(self, q_terms: Sequence[str], q_text: str, return_parts: bool = False):
         c = self.cfg
         L0, D0, H0 = self.first_pass(q_terms, q_text)
-<<<<<<< HEAD
-=======
         query_vector = self.dense.query_vector(q_text)
         if not L0 and not np.any(query_vector):
             if return_parts:
                 return {}, {"L0": L0, "D0": D0, "H0": {}, "L1": {}, "D1": {}, "feedback": [], "expansion": {}}
             return {}
->>>>>>> 1d6f999a29f64cc4785f3e1f1baa07f014efb4c0
         fb = top_k(H0, c.fb_docs)
         if not q_terms:
             L1 = {}
@@ -69,11 +66,7 @@ class BridgePRF:
             weights = rm3(self.bm25.index, q_terms, [(d, L0.get(d, 0.0)) for d, _ in fb], c.fb_terms, c.orig_weight)
             L1 = self.bm25.score_weighted(weights)
         E = self.dense.emb
-<<<<<<< HEAD
-        qv = self.dense.query_vector(q_text) + c.dense_beta * E[[d for d, _ in fb]].mean(0)
-=======
         qv = query_vector + c.dense_beta * E[[d for d, _ in fb]].mean(0)
->>>>>>> 1d6f999a29f64cc4785f3e1f1baa07f014efb4c0
         qv /= np.linalg.norm(qv) or 1.0
         D1 = {i: float(s) for i, s in enumerate(E @ qv)}
         final = interpolate(L1, D1, c.alpha) if L1 else D1

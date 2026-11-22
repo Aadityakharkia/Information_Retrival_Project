@@ -300,7 +300,7 @@ function whyPanel(h) {
   const sig = h.signal || {};
   return `<div class="why">
     ${rows.length ? rows.map((k) => `<div class="row"><span>${SIG[k][0]}</span><span class="bar"><i style="width:${Math.min(100, Math.abs(b[k]) / scale * 100)}%;background:${b[k] < 0 ? "var(--red)" : SIG[k][1]}"></i></span><span class="v">${b[k] >= 0 ? "+" : ""}${b[k].toFixed(3)}</span></div>`).join("")
-      + `<p class="tiny muted" style="margin-top:6px">Relevance is the Bridge-PRF score (BM25 keywords + semantic similarity, with feedback expansion), scaled 0–1 within this result set. The other signals are small, bounded additions.</p>`
+      + `<p class="tiny muted" style="margin-top:6px">Relevance is the Bridge-PRF score (BM25 keywords + semantic similarity, with feedback expansion), scaled 0–1 within this result set. Link authority and search memory are small, bounded additions; when your previous search is related, “Context” blends in how well the result matches both searches together.</p>`
       : `<p class="small">Score ${h.score} with ${esc(S.results.r.mode_name)}.</p>`}
     ${sig.terms ? `<p class="terms">${sig.matched} of ${sig.terms} query terms appear in the text. Evidence split: ${Math.round((sig.lexical || 0) * 100)}% word match, ${Math.round((sig.semantic || 0) * 100)}% meaning.</p>` : ""}
     ${terms.length ? `<p class="terms">BM25 contributions: ${terms.slice(0, 6).map(([t, tf, idf, c]) => `<b>${esc(t)}</b> ${c.toFixed(2)} <span class="muted">(tf ${tf}, idf ${idf})</span>`).join(", ")}</p>` : ""}

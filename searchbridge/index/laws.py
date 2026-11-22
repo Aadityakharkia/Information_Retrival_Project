@@ -29,10 +29,14 @@ def _loglog_fit(x: np.ndarray, y: np.ndarray) -> Tuple[float, float, float]:
     return slope, intercept, r2
 
 
-def zipf_fit(cf: Counter) -> Tuple[ZipfFit, np.ndarray, np.ndarray]:
+def zipf_fit(cf: Counter, points: int = 50) -> Tuple[ZipfFit, np.ndarray, np.ndarray]:
+    """Fit log cf = -s log rank + c on ranks spaced evenly in log scale. Fitting every rank would let the long
+    tail of words seen once or twice (most of the vocabulary, all crammed into the last decade of ranks)
+    dominate the least-squares fit and overstate s (1.6-1.8 instead of about 1 on these collections)."""
     freqs = np.array(sorted(cf.values(), reverse=True), dtype=float)
     ranks = np.arange(1, len(freqs) + 1, dtype=float)
-    slope, _, r2 = _loglog_fit(ranks, freqs)
+    idx = np.unique(np.logspace(0, np.log10(len(ranks)), points).astype(int) - 1)
+    slope, _, r2 = _loglog_fit(ranks[idx], freqs[idx])
     return ZipfFit(-slope, r2), ranks, freqs
 
 

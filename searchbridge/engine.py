@@ -382,17 +382,50 @@ class SearchEngine:
                 return False
         return True
 
+    CONTEXT_TOP, CONTEXT_LIFT = 0.02, 3.0
+
+    def _context_related(self, context: str, scores: Dict[int, float], depth: int = 200) -> bool:
+        """Is the earlier query about something this query's results contain? Comparing two short queries
+        directly is too noisy (related pairs score 0.04-0.43, unrelated ones up to 0.22 with SBERT), so instead
+        count how many of this query's top `depth` candidates are among the 2 % of the collection closest to the
+        earlier query; the context is used when that share is at least 3x what chance gives. Relative to the
+        collection, so it works the same for SBERT and LSA, and it also catches a minority sense
+        ("attacks" after "wireless sensor network routing")."""
+        ids = [d for d, _ in top_k(scores, depth)]
+        if not ids:
+            return False
+        cs = self.dense.emb @ self.dense.query_vector(context)
+        threshold = float(np.quantile(cs, 1 - self.CONTEXT_TOP))
+        return float((cs[ids] >= threshold).mean()) >= self.CONTEXT_LIFT * self.CONTEXT_TOP
+
+    _GIBBERISH = ("qwzxv plmkj", "asdf ghjk", "zzkq vvbn", "pqowie ruty")
+
+    def _noise_floor(self) -> float:
+        """Best document similarity that random letter strings reach with this encoder: sentence encoders
+        map any input somewhere in the space, so a nonsense query always has a "closest" document."""
+        if getattr(self, "_noise", None) is None:
+            self._noise = max(float((self.dense.emb @ self.dense.query_vector(g)).max()) for g in self._GIBBERISH)
+        return self._noise
+
+    def _nothing_matches(self, q_terms: Sequence[str], text: str) -> bool:
+        """No query word occurs in the collection and the meaning match is no better than gibberish."""
+        if any(self.index.df(t) for t in q_terms):
+            return False
+        best = float((self.dense.emb @ self.dense.query_vector(text)).max()) if len(self.dense.emb) else 0.0
+        return best <= self._noise_floor() + 0.05
+
     def _correct_word(self, w: str) -> str:
         """Correct only words that look like typos. A word is left alone when it is in the collection, when it is
         short (short words have too many one-letter neighbours: stop -> step), when the candidate just adds or
         removes an affix (orthodox -> unorthodox), or when its stem is indexed and the candidate has a different
-        stem (efficiently -> sufficiently would change the search). One edit below 8 letters, two from 8 on."""
+        stem (efficiently -> sufficiently would change the search). One edit below 10 letters, two from 10 on
+        (two edits on shorter words turn real words into others: learning -> leading)."""
         if w in self.kgram.freq or not w.isalpha() or len(w) <= 5:
             return w
         t = self.analyzer.analyze_term(w)
         if not t:
             return w
-        cands = self.kgram.suggest(w, max_dist=1 if len(w) < 8 else 2)
+        cands = self.kgram.suggest(w, max_dist=1 if len(w) < 10 else 2)
         if not cands:
             return w
         f = cands[0][0]
@@ -485,6 +518,9 @@ class SearchEngine:
 
         if not q_terms and mode != "boolean" and not filters:
             return SearchResponse(query, mode, [], 0, round((time.time() - t0) * 1000, 1), corrected, filters=filters)
+        if q_terms and mode != "boolean" and self._nothing_matches(q_terms, text):
+            return SearchResponse(query, mode, [], 0, round((time.time() - t0) * 1000, 1), corrected, filters=filters,
+                                  notice="No document contains these words or anything close in meaning.")
         if not q_terms and mode != "boolean":     # filter-only browse: rank by PageRank
             scores = {i: float(self.pagerank[i]) for i in range(len(self.docs))}
         elif mode == "boolean":
@@ -518,8 +554,7 @@ class SearchEngine:
                          if t not in orig and self.index.idf(t) >= 1.0 and not t.isdigit() and len(t) > 2][:8]
             alpha = self.cfg.bridge.alpha
             if context and context.strip().lower() != free.strip().lower():
-                cv, qv = self.dense.query_vector(context), self.dense.query_vector(text)
-                if float(cv @ qv) >= 0.4:       # only a related earlier query is used as context
+                if self._context_related(context, scores):     # only a related earlier query is used as context
                     context_used = context
             scores, breakdown, reasons = self._smart(scores, q_terms, text, personal, context_used)
         else:  # bridge
@@ -623,7 +658,7 @@ class SearchEngine:
                 "any": len(any_), "all": len(all_), "weak": bool(terms) and (len(all_) == 0 or len(any_) == 0)}
 
     # ------------------------------------------------------------------ smart ranking
-    W_PAGERANK, W_HITS, W_CONTEXT = 0.05, 0.05, 0.1
+    W_PAGERANK, W_HITS, W_CONTEXT = 0.05, 0.05, 0.5
     # Link authority is only trusted when the graph covers enough of the collection: with a handful of
     # citations (e.g. 40 links among 2,243 papers) PageRank and HITS just reward the few linked documents.
     MIN_LINK_COVERAGE = 0.2
@@ -652,11 +687,15 @@ class SearchEngine:
                 final[d] += pr + au
                 bd[d]["pagerank"], bd[d]["hits"] = round(pr, 4), round(au, 4)
         if context:
-            cs = self.dense.score_text(context)
-            sub = [cs.get(d, 0.0) for d in ids]
-            m0, m1 = min(sub), max(sub)
-            for d, v in zip(ids, sub):
-                c = self.W_CONTEXT * ((v - m0) / (m1 - m0) if m1 > m0 else 0.0)
+            # session query expansion: re-score the candidates against the current query and the earlier one
+            # together, and mix that in (an additive bonus cannot lift a relevant document from rank 150)
+            v = self.dense.query_vector(text) + self.dense.query_vector(context)
+            v = v / (np.linalg.norm(v) or 1.0)
+            sub = self.dense.emb[ids] @ v
+            m0, m1 = float(sub.min()), float(sub.max())
+            for d, x in zip(ids, sub):
+                joint = (float(x) - m0) / (m1 - m0) if m1 > m0 else 0.0
+                c = self.W_CONTEXT * (joint - rel[d])          # final = (1 - W) * relevance + W * joint
                 final[d] += c
                 bd[d]["context"] = round(c, 4)
         reasons: Dict[int, List[str]] = {}
@@ -835,22 +874,57 @@ class SearchEngine:
             out.setdefault(int(c), {"docs": [], "_ids": []})
             out[int(c)]["docs"].append(h.doc_id)
             out[int(c)]["_ids"].append(i)
-        for _c, v in out.items():
-            ids_c = v.pop("_ids")
-            tags: Counter = Counter(t.lower() for i in ids_c for t in self.docs[i].tags)
-            if tags and tags.most_common(1)[0][1] > 1:
-                v["label"] = [_title_case_phrase(t) for t, _ in tags.most_common(2)]
-            else:
-                tf: Counter = Counter()
-                for i in ids_c:
-                    tf.update(set(self.analyzer(self.docs[i].title)))
-                scored = sorted(((n * self.index.idf(w), self.surface.get(w, w)) for w, n in tf.items()
-                                 if n > 1 and len(w) > 3), reverse=True)
-                v["label"] = [_title_case_phrase(w) for _, w in scored[:2] if w not in STOPWORDS]
-                if not v["label"]:   # fall back to the best-ranked member's own keyphrase / title
-                    first = self.docs[ids_c[0]]
-                    v["label"] = [_title_case_phrase(first.tags[0])] if first.tags else [first.display_title[:40]]
+        # Label each cluster with what sets it apart from the OTHER results: a keyphrase scores by its share of
+        # the cluster's documents minus its share of the rest, so phrases every result has (often the query
+        # itself) never win, and a phrase used for one cluster is not reused, so no two clusters look the same.
+        members = {c: v.pop("_ids") for c, v in out.items()}
+        all_ids = [i for ids_c in members.values() for i in ids_c]
+
+        def doc_terms(i: int) -> set:
+            tags = {t.lower() for t in self.docs[i].tags}
+            # no keyphrases (e.g. news): distinctive title words only, i.e. words in under 5 % of documents
+            return tags or {self.surface.get(w, w) for w in self.analyzer(self.docs[i].title)
+                            if len(w) > 3 and self.index.idf(w) >= math.log10(20)}
+
+        terms = {i: doc_terms(i) for i in all_ids}
+        used: set = set()
+        for c in sorted(out, key=lambda c: -len(members[c])):
+            ids_c, rest = members[c], [i for i in all_ids if i not in members[c]]
+            inside = Counter(t for i in ids_c for t in terms[i])
+            outside = Counter(t for i in rest for t in terms[i])
+            if len(ids_c) == 1:     # a single result is best described by itself
+                first = self.docs[ids_c[0]]
+                spare = [t for t in first.tags if t.lower() not in used]
+                picked = [spare[0].lower()] if spare else [first.display_title[:48]]
+                used.update(picked)
+                out[c]["label"] = [_title_case_phrase(self._casing(t)) if t in spare or t.islower() else t for t in picked]
+                continue
+            need = 2
+            scored = sorted(((n / len(ids_c) - (outside[t] / len(rest) if rest else 0.0), n, t) for t, n in inside.items()
+                             if n >= need and t not in used and t not in STOPWORDS), reverse=True)
+            picked: List[str] = []
+            for _, _, t in scored:
+                if not any(t in p or p in t for p in picked):
+                    picked.append(t)
+                if len(picked) == 2:
+                    break
+            if not picked:          # fall back to the best-ranked member's own keyphrase or title
+                first = self.docs[ids_c[0]]
+                spare = [t for t in first.tags if t.lower() not in used]
+                picked = [spare[0].lower()] if spare else [first.display_title[:40]]
+            used.update(picked)
+            out[c]["label"] = [_title_case_phrase(self._casing(t)) for t in picked]
         return out
+
+    def _casing(self, phrase: str) -> str:
+        """Original capitalisation of a keyphrase (e.g. "SQL", "k-means") when a document spells it that way."""
+        if not hasattr(self, "_tag_case"):
+            self._tag_case = {}
+            for d in self.docs:
+                for t in d.tags:
+                    if t != t.lower():
+                        self._tag_case.setdefault(t.lower(), t)
+        return self._tag_case.get(phrase, phrase)
 
     def feedback_search(self, query: str, relevant: Sequence[str], nonrelevant: Sequence[str] = (), k: int = 10) -> List[Tuple[str, float]]:
         """Explicit relevance feedback (Rocchio) from user-marked results."""

@@ -403,3 +403,36 @@ def test_dblp_sampler_rebuilds_abstracts_and_keeps_internal_citations(tmp_path):
     assert docs["dblp-1"].links == ["dblp-2", "dblp-3"]                   # citation 99 is outside the sample
     assert docs["dblp-1"].tags == ["Ranking"]                              # labels and generic fields are not tags
     assert json.loads((out.parent / "stats.json").read_text())["internal_citations"] == 4
+
+
+def test_zipf_fit_is_not_dominated_by_the_tail():
+    from collections import Counter
+    from searchbridge.index.laws import zipf_fit
+    cf = Counter({f"w{r}": max(1, int(100_000 / r)) for r in range(1, 50_001)})    # exact Zipf, s = 1, long flat tail
+    assert abs(zipf_fit(cf)[0].exponent - 1.0) < 0.1
+
+
+def test_two_edit_corrections_need_long_words(cran):
+    engine, _, _ = cran
+    assert engine.search("deep learning", mode="bm25", k=1).corrected_query is None     # not "deep leading"
+
+
+def test_context_is_used_only_when_it_matches_the_results(cran):
+    engine, _, _ = cran
+    related = engine.search("wing flutter", mode="smart", k=5, context="supersonic aircraft wings")
+    unrelated = engine.search("wing flutter", mode="smart", k=5, context="heat transfer in gases")
+    assert related.context_used and not unrelated.context_used
+
+
+def test_gibberish_returns_nothing_instead_of_closest_documents(cran):
+    engine, _, _ = cran
+    r = engine.search("qwzxv plmkj", mode="smart", k=5)
+    assert not r.hits and r.notice
+    assert engine.search("wing flutter", mode="smart", k=5).hits
+
+
+def test_result_cluster_labels_are_distinct(cran):
+    engine, _, _ = cran
+    for q in ("wing flutter", "boundary layer heat transfer", "shock waves"):
+        labels = [" · ".join(v["label"]) for v in engine.cluster_results(engine.search(q, mode="smart", k=10), 4).values()]
+        assert len(set(labels)) == len(labels) and all(labels), (q, labels)
